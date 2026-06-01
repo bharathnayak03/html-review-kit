@@ -1,0 +1,21 @@
+{
+  "name": "react-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "test": "echo \"No tests for react-demo\""
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "@html-review-kit/react": "workspace:*",
+    "vite": "^5.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0"
+  }
+}

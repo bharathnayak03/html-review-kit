@@ -20,7 +20,7 @@ function findByText(root: Document | Element, text: string): Element | null {
   );
 
   let candidate: Element | null = null;
-  let current = walker.currentNode;
+  let current: Node | null = walker.currentNode;
   while (current) {
     if (current instanceof Element && current.textContent?.includes(text)) {
       candidate = current;
