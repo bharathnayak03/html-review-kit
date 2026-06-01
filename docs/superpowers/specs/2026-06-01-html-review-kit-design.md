@@ -127,11 +127,31 @@ The React package depends on `@html-review-kit/core` and React peer dependencies
 
 The package includes:
 
-- `packages/ai/skills/codex/SKILL.md`
-- `packages/ai/skills/codex/scripts/validate-comments.ts`
-- `packages/ai/skills/claude/CLAUDE.md`
-- `packages/ai/skills/claude/commands/apply-html-review-comments.md`
-- `packages/ai/skills/generic/AGENTS.md`
+- `packages/ai/skills/html-review-kit/SKILL.md`
+- `packages/ai/skills/html-review-kit/scripts/validate-comments.ts`
+- `packages/ai/instructions/claude/CLAUDE.md`
+- `packages/ai/instructions/claude/commands/apply-html-review-comments.md`
+- `packages/ai/instructions/generic/AGENTS.md`
+
+The distributable skill follows the standard skill anatomy:
+
+```text
+html-review-kit/
+  SKILL.md
+  scripts/
+    validate-comments.ts
+```
+
+`SKILL.md` must start with YAML frontmatter containing at least:
+
+```yaml
+---
+name: html-review-kit
+description: Use when applying, validating, or resolving HTML Review Kit review packets for AI-generated HTML artifacts, including requests that mention .review/html-review-comments.json, visual HTML comments, artifact comments, or agent handoff comments.
+---
+```
+
+The body should be concise markdown instructions for reading `.review/html-review-comments.json`, resolving anchors, applying source edits, and writing `.review/html-review-comments.resolved.json`. Detailed schemas and examples should live in package docs or bundled references only if they are needed later; the v0 skill should stay focused.
 
 Agent instructions tell coding agents to read `.review/html-review-comments.json`, process open comments, locate targets by the most stable available anchor, edit source files while preserving semantic HTML, and write `.review/html-review-comments.resolved.json`.
 
@@ -216,7 +236,11 @@ html-review-kit/
         promptBuilders/
         validation/
       skills/
-        codex/
+        html-review-kit/
+          SKILL.md
+          scripts/
+            validate-comments.ts
+      instructions/
         claude/
         generic/
       package.json
