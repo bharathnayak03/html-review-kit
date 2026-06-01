@@ -69,6 +69,32 @@ export interface CommentStorageAdapter {
   save(comments: ArtifactComment[]): Promise<void>;
 }
 
+export interface CreateReviewLayerOptions {
+  root: HTMLElement | Document;
+  artifact: ArtifactInfo;
+  mode?: ReviewMode;
+  comments?: ArtifactComment[];
+  autoGenerateAnchors?: boolean;
+  readonly?: boolean;
+  onCommentCreate?: (comment: ArtifactComment) => void;
+  onCommentUpdate?: (comment: ArtifactComment) => void;
+  onCommentDelete?: (commentId: string) => void;
+  onCommentsChange?: (comments: ArtifactComment[]) => void;
+}
+
+export interface ReviewLayerInstance {
+  enable(): void;
+  disable(): void;
+  setMode(mode: ReviewMode): void;
+  getComments(): ArtifactComment[];
+  addComment(input: AddCommentInput): ArtifactComment;
+  updateComment(id: string, patch: Partial<ArtifactComment>): void;
+  deleteComment(id: string): void;
+  exportReviewPacket(): ArtifactReviewPacket;
+  importReviewPacket(packet: ArtifactReviewPacket): void;
+  destroy(): void;
+}
+
 export interface ValidationResult {
   ok: boolean;
   errors: string[];
