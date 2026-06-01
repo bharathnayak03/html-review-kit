@@ -1,5 +1,7 @@
 # HTML Review Kit Agent Instructions
 
+Repository: https://github.com/bharathnayak03/html-review-kit
+
 When asked to apply HTML Review Kit comments:
 
 1. Read `.review/html-review-comments.json`.

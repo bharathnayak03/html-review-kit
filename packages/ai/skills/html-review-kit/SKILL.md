@@ -7,6 +7,8 @@ description: Use when applying, validating, or resolving HTML Review Kit review 
 
 Use this skill when a user asks to apply or inspect HTML Review Kit comments.
 
+Repository: https://github.com/bharathnayak03/html-review-kit
+
 ## Workflow
 
 1. Read `.review/html-review-comments.json`.
@@ -20,8 +22,20 @@ Use this skill when a user asks to apply or inspect HTML Review Kit comments.
 
 ## Validation
 
-When a validation script is available, run:
+When this skill is installed from the repo, prefer the bundled validation script:
 
 ```bash
 tsx packages/ai/skills/html-review-kit/scripts/validate-comments.ts .review/html-review-comments.json
+```
+
+If the script is not present in the current checkout, future published versions can be run through npm:
+
+```bash
+npx @html-review-kit/ai validate .review/html-review-comments.json
+```
+
+For source installs, scripts can be downloaded from:
+
+```text
+https://raw.githubusercontent.com/bharathnayak03/html-review-kit/main/packages/ai/skills/html-review-kit/scripts/validate-comments.ts
 ```
