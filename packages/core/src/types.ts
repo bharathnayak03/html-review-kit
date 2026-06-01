@@ -56,6 +56,19 @@ export interface ArtifactReviewPacket {
   instructions?: string;
 }
 
+export interface AddCommentInput {
+  body: string;
+  aiInstruction?: string;
+  target: ArtifactTarget;
+  author?: ArtifactComment["author"];
+  metadata?: Record<string, unknown>;
+}
+
+export interface CommentStorageAdapter {
+  load(): Promise<ArtifactComment[]>;
+  save(comments: ArtifactComment[]): Promise<void>;
+}
+
 export interface ValidationResult {
   ok: boolean;
   errors: string[];
