@@ -79,7 +79,53 @@ The installable skill lives at:
 skills/html-review-kit/SKILL.md
 ```
 
-Use it when writing HTML specs or when a task explicitly mentions `html-review-kit`.
+Use it when writing static HTML artifacts or when applying copied HTML Review Kit annotations.
+
+The package intentionally keeps only one `SKILL.md` copy. Install it explicitly for local agent use, or install this repo as a Claude Code or Codex plugin for distribution.
+
+## Publishing the Skill
+
+The canonical skill content is `skills/html-review-kit/SKILL.md`.
+
+For Claude Code:
+
+```bash
+mkdir -p ~/.claude/skills/html-review-kit
+cp skills/html-review-kit/SKILL.md ~/.claude/skills/html-review-kit/SKILL.md
+```
+
+For Claude Code plugin testing:
+
+```bash
+claude --plugin-dir .
+```
+
+The Claude plugin manifest lives at:
+
+```text
+.claude-plugin/plugin.json
+```
+
+When loaded as a Claude plugin, the skill is invoked as:
+
+```text
+/html-review-kit:html-review-kit
+```
+
+For Codex local use:
+
+```bash
+mkdir -p ~/.agents/skills/html-review-kit
+cp skills/html-review-kit/SKILL.md ~/.agents/skills/html-review-kit/SKILL.md
+```
+
+For Codex plugin distribution, this repository is also a plugin root. The manifest lives at:
+
+```text
+.codex-plugin/plugin.json
+```
+
+External developers can install or share the repo as a Codex plugin source. The plugin exposes the skill from `./skills/`.
 
 ## Development
 

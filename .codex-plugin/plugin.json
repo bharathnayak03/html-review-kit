@@ -1,0 +1,33 @@
+{
+  "name": "html-review-kit",
+  "version": "0.1.0",
+  "description": "Apply HTML Review Kit annotations to static HTML artifacts.",
+  "author": {
+    "name": "HTML Review Kit"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/bharathnayak/html-artifact-patch",
+  "keywords": [
+    "html",
+    "review",
+    "annotations",
+    "codex",
+    "claude"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "HTML Review Kit",
+    "shortDescription": "Apply HTML artifact review comments",
+    "longDescription": "Adds a reusable workflow for writing reviewable static HTML artifacts and applying copied HTML Review Kit annotations back to source files.",
+    "developerName": "HTML Review Kit",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Apply these HTML Review Kit annotations.",
+      "Make this static HTML artifact reviewable."
+    ]
+  }
+}

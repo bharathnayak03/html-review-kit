@@ -1,0 +1,10 @@
+{
+  "name": "html-review-kit",
+  "description": "Apply HTML Review Kit annotations to static HTML artifacts.",
+  "version": "0.1.0",
+  "author": {
+    "name": "HTML Review Kit"
+  },
+  "repository": "https://github.com/bharathnayak/html-artifact-patch",
+  "license": "MIT"
+}
