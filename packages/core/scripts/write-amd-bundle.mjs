@@ -8,7 +8,7 @@ const amdFile = resolve(distDir, "index.amd.js");
 const source = await readFile(iifeFile, "utf8");
 const amdRegistration = `
 ;if (typeof define === "function" && define.amd) {
-  define("html-review-kit/core", [], function () {
+  define("@bharathnayak03/html-review-kit-core", [], function () {
     return globalThis.HTMLReviewKitCore;
   });
 }

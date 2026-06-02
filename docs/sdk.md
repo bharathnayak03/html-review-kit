@@ -3,7 +3,7 @@
 Build the core package to produce the browser scripts:
 
 ```bash
-pnpm --filter @html-review-kit/core build
+pnpm --filter @bharathnayak03/html-review-kit-core build
 ```
 
 The build produces `index.global.js`, `index.amd.js`, and `html-review-kit-core.amd.js` in `packages/core/dist`.
@@ -11,7 +11,7 @@ The build produces `index.global.js`, `index.amd.js`, and `html-review-kit-core.
 Load the pinned npm CDN script in the artifact:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@bharathnayak03/html-review-kit-core@0.1.0/dist/html-review-kit-core.amd.js"></script>
 ```
 
 For offline or self-contained artifacts, copy the built bundle next to the HTML file and load it locally:
@@ -23,7 +23,7 @@ For offline or self-contained artifacts, copy the built bundle next to the HTML 
 The same published file is also available through unpkg:
 
 ```html
-<script src="https://unpkg.com/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+<script src="https://unpkg.com/@bharathnayak03/html-review-kit-core@0.1.0/dist/html-review-kit-core.amd.js"></script>
 ```
 
 Pin the version in static artifacts. Avoid `@latest`, because old review packets should keep using the script version they were created against.

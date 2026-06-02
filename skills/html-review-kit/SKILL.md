@@ -13,7 +13,7 @@ Use this skill when a user asks for HTML Review Kit, writes static HTML that sho
 2. Load the pinned AMD browser bundle in the HTML artifact:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@bharathnayak03/html-review-kit-core@0.1.0/dist/html-review-kit-core.amd.js"></script>
 ```
 
 3. Add a small JavaScript initializer after the artifact markup:
