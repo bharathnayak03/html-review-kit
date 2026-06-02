@@ -69,6 +69,58 @@ const review = createReviewLayer({
 review.enable();
 ```
 
+### Static HTML Usage
+
+`@html-review-kit/core` also builds a browser bundle for static HTML artifacts:
+
+```bash
+pnpm --filter @html-review-kit/core build
+```
+
+The build writes:
+
+```text
+packages/core/dist/index.amd.js
+packages/core/dist/html-review-kit-core.amd.js
+```
+
+Load that file from a static artifact and initialize the review layer directly:
+
+```html
+<script src="../../../packages/core/dist/index.amd.js"></script>
+<script>
+  const review = HTMLReviewKitCore.createReviewLayer({
+    root: document.querySelector("[data-hrk-id='artifact-root']"),
+    artifact: {
+      artifactId: "artifact-root",
+      sourceType: "html",
+      sourceFile: "path/to/artifact.html",
+    },
+    mode: "off",
+  });
+
+  review.enable();
+</script>
+```
+
+See the sample static artifact:
+
+```text
+docs/superpowers/specs/2026-06-01-vscode-extension-sample-artifact.html
+```
+
+## Review Toolbar
+
+The core review layer now renders a small overlay toolbar with:
+
+- `Enable review mode` / `Disable review mode`: toggles element commenting.
+- `Export JSON`: downloads the native HTML Review Kit packet as `html-review-comments.json`.
+- `Copy annotations`: copies all open annotations to the clipboard.
+
+In comment mode, hovering an element outlines the exact target that will receive the next comment. Existing comments are represented by a small numbered marker near the target element. Hovering the target, marker, or comment box shows the comment in an absolutely positioned overlay box near the target's upper-right side.
+
+The clipboard payload is JSON inspired by the W3C Web Annotation Data Model. It includes a prompt, HTML Review Kit metadata, and an `annotationCollection` with `@context: "http://www.w3.org/ns/anno.jsonld"`, `AnnotationCollection`, `Annotation`, `TextualBody`, `SpecificResource`, and selector entries such as `FragmentSelector`, `CssSelector`, `XPathSelector`, and `TextQuoteSelector`.
+
 ## React Usage
 
 ```tsx
