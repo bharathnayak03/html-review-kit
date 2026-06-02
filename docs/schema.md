@@ -1,11 +1,12 @@
-# Review Packet Schema
+# Copied Annotation Shape
 
-HTML Review Kit exports `.review/html-review-comments.json` with schema version `0.1`.
+`Copy prompt` copies plain text for an agent. The prompt includes an `AnnotationCollection` block with open comments.
 
-Core fields:
+Important fields:
 
-- `artifact`: artifact id, version, source type, title, and source file.
-- `comments`: review comments with status, body, optional AI instruction, target, author, and timestamps.
-- `target`: stable location data including `anchorId`, `textQuote`, `cssSelector`, `xpath`, nearby text, HTML snippet, and element fingerprint.
+- `body.value`: requested change.
+- `target.source`: source HTML file.
+- `target.htmlReviewKitTarget`: HTML Review Kit target data.
+- `selector`: fallback selectors such as `FragmentSelector`, `TextQuoteSelector`, `CssSelector`, and `XPathSelector`.
 
 Stable anchors use `data-hrk-id`.

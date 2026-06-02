@@ -184,39 +184,7 @@ describe("createReviewLayer", () => {
     review.destroy();
   });
 
-  it("exports the native review packet as JSON from the toolbar", () => {
-    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
-    const createObjectURL = vi.fn(() => "blob:review-packet");
-    const revokeObjectURL = vi.fn();
-    Object.assign(URL, { createObjectURL, revokeObjectURL });
-
-    const click = vi
-      .spyOn(HTMLAnchorElement.prototype, "click")
-      .mockImplementation(() => undefined);
-    const review = createReviewLayer({
-      root: document.body,
-      artifact: { artifactId: "demo", sourceFile: "artifact.html" },
-      mode: "comment",
-    });
-
-    review.addComment({
-      body: "Make the headline more specific.",
-      target: { anchorId: "hero" },
-    });
-
-    document
-      .querySelector<HTMLButtonElement>("[data-hrk-export-json]")
-      ?.click();
-
-    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
-    expect(click).toHaveBeenCalled();
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:review-packet");
-
-    click.mockRestore();
-    review.destroy();
-  });
-
-  it("copies all annotations in a W3C-inspired annotation collection", async () => {
+  it("copies a prompt with all annotations", async () => {
     document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {
@@ -244,34 +212,23 @@ describe("createReviewLayer", () => {
       ?.click();
     await Promise.resolve();
 
-    const copied = JSON.parse(writeText.mock.calls[0][0]);
-    expect(copied.prompt).toContain("Revisit this HTML artifact");
-    expect(copied.annotationCollection).toMatchObject({
-      "@context": "http://www.w3.org/ns/anno.jsonld",
-      type: "AnnotationCollection",
-      total: 1,
-    });
-    expect(copied.annotationCollection.items[0]).toMatchObject({
-      type: "Annotation",
-      motivation: "commenting",
-      body: {
-        type: "TextualBody",
-        purpose: "commenting",
-        value: "Make the headline more specific.",
-      },
-      target: {
-        type: "SpecificResource",
-        source: "artifact.html",
-      },
-    });
-    expect(copied.annotationCollection.items[0].target.selector).toEqual(
-      expect.arrayContaining([
-        { type: "FragmentSelector", value: "data-hrk-id=hero" },
-        { type: "CssSelector", value: "[data-hrk-id='hero']" },
-        { type: "XPathSelector", value: "/html/body/main/section" },
-        { type: "TextQuoteSelector", exact: "Hero" },
-      ]),
+    const copied = writeText.mock.calls[0][0] as string;
+    expect(copied).toContain(
+      "Apply these HTML Review Kit annotations to the source HTML artifact.",
     );
+    expect(copied).toContain("Source file: artifact.html");
+    expect(copied).toContain('"type": "AnnotationCollection"');
+    expect(copied).toContain('"motivation": "commenting"');
+    expect(copied).toContain('"value": "Make the headline more specific."');
+    expect(copied).toContain('"source": "artifact.html"');
+    expect(copied).toContain('"type": "FragmentSelector"');
+    expect(copied).toContain('"value": "data-hrk-id=hero"');
+    expect(copied).toContain('"type": "CssSelector"');
+    expect(copied).toContain("\"[data-hrk-id='hero']\"");
+    expect(copied).toContain('"type": "XPathSelector"');
+    expect(copied).toContain('"value": "/html/body/main/section"');
+    expect(copied).toContain('"type": "TextQuoteSelector"');
+    expect(copied).toContain('"exact": "Hero"');
 
     review.destroy();
   });

@@ -1,19 +1,35 @@
-# SDK
+# Static HTML SDK
 
-## Core
+Build the core package to produce the browser scripts:
 
-`createReviewLayer(options)` attaches a review layer to a DOM root.
-
-```ts
-const review = createReviewLayer({
-  root: document.body,
-  artifact: { artifactId: "demo", sourceFile: "index.html" },
-  mode: "comment",
-});
+```bash
+pnpm --filter @html-review-kit/core build
 ```
 
-The instance can enable or disable review mode, add/update/delete comments, import packets, and export packets.
+The build produces `index.global.js`, `index.amd.js`, and `html-review-kit-core.amd.js` in `packages/core/dist`.
 
-## React
+Load one AMD script in the artifact:
 
-`ArtifactReviewFrame` renders HTML in an iframe and creates a review layer in that iframe document.
+```html
+<script src="./html-review-kit-core.amd.js"></script>
+```
+
+Initialize it with plain JavaScript:
+
+```html
+<script>
+  const review = HTMLReviewKitCore.createReviewLayer({
+    root: document.querySelector("[data-hrk-id='artifact-root']"),
+    artifact: {
+      artifactId: "artifact-root",
+      sourceType: "html",
+      sourceFile: "artifact.html",
+    },
+    mode: "off",
+  });
+
+  review.enable();
+</script>
+```
+
+Use `data-hrk-id` on stable sections so copied annotations can be located reliably.

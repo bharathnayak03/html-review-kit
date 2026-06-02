@@ -1,4 +1,4 @@
-export type ArtifactSourceType = "html" | "react" | "mdx" | "unknown";
+export type ArtifactSourceType = "html" | "unknown";
 
 export interface ArtifactInfo {
   artifactId: string;

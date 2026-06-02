@@ -1,9 +1,9 @@
 # AI Workflow
 
-1. Generate semantic HTML with `data-hrk-id` on important sections.
-2. Review the rendered artifact with HTML Review Kit.
-3. Export `.review/html-review-comments.json`.
-4. Ask a coding agent to apply the comments.
-5. The agent writes `.review/html-review-comments.resolved.json`.
+1. Write semantic static HTML with `data-hrk-id` on important sections.
+2. Load the HTML Review Kit AMD script and initializer.
+3. Review the rendered artifact in a browser.
+4. Click `Copy prompt`.
+5. Paste the copied prompt into a coding agent.
 
-Agents should resolve targets using `anchorId`, `textQuote`, `cssSelector`, `xpath`, contextual text, and HTML snippets in that order.
+The copied prompt includes the open HTML annotations and target selectors.

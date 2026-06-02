@@ -1,18 +1,9 @@
 # Roadmap
 
-## v0
+## Current Scope
 
-- Core DOM SDK.
-- React iframe wrapper.
-- AI prompt helpers.
-- Standard `SKILL.md` package.
-- Local JSON export/import.
-- Basic demos.
-
-## Later
-
-- Browser extension.
-- VS Code extension.
-- CLI.
-- MCP server.
-- Hosted collaboration.
+- Core DOM review layer.
+- AMD browser script for static HTML artifacts.
+- Plain JavaScript initializer.
+- `SKILL.md` for writing HTML specs and applying copied annotations.
+- Copy-prompt workflow with HTML annotations.

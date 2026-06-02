@@ -54,64 +54,52 @@ function buildSelectors(comment: ArtifactComment) {
   return selectors;
 }
 
-function buildAnnotationClipboardPayload(
+function buildAnnotationPrompt(
   artifact: ArtifactInfo,
   comments: ArtifactComment[],
-) {
+): string {
   const source = artifact.sourceFile ?? artifact.artifactId;
   const openComments = comments.filter((comment) => comment.status === "open");
-
-  return {
-    prompt:
-      "Revisit this HTML artifact and apply every annotation. Use the target selectors to locate each node, preferring data-hrk-id, then CSS selector, XPath, text quote, and text position.",
-    htmlReviewKit: {
-      artifact,
-      annotationCount: openComments.length,
-      generatedBy: "@html-review-kit/core",
-    },
-    annotationCollection: {
-      "@context": "http://www.w3.org/ns/anno.jsonld",
-      type: "AnnotationCollection",
-      id: `urn:html-review-kit:${artifact.artifactId}:annotations`,
-      total: openComments.length,
-      items: openComments.map((comment) => ({
-        id: `urn:html-review-kit:${artifact.artifactId}:${comment.id}`,
-        type: "Annotation",
-        motivation: "commenting",
-        created: comment.createdAt,
-        ...(comment.updatedAt ? { modified: comment.updatedAt } : {}),
-        body: {
-          type: "TextualBody",
-          purpose: "commenting",
-          value: comment.body,
-          format: "text/plain",
-          ...(comment.aiInstruction
-            ? { htmlReviewKitInstruction: comment.aiInstruction }
-            : {}),
-        },
-        target: {
-          type: "SpecificResource",
-          source,
-          selector: buildSelectors(comment),
-          htmlReviewKitTarget: comment.target,
-        },
-      })),
-    },
+  const annotationCollection = {
+    "@context": "http://www.w3.org/ns/anno.jsonld",
+    type: "AnnotationCollection",
+    id: `urn:html-review-kit:${artifact.artifactId}:annotations`,
+    total: openComments.length,
+    items: openComments.map((comment) => ({
+      id: `urn:html-review-kit:${artifact.artifactId}:${comment.id}`,
+      type: "Annotation",
+      motivation: "commenting",
+      created: comment.createdAt,
+      ...(comment.updatedAt ? { modified: comment.updatedAt } : {}),
+      body: {
+        type: "TextualBody",
+        purpose: "commenting",
+        value: comment.body,
+        format: "text/plain",
+        ...(comment.aiInstruction
+          ? { htmlReviewKitInstruction: comment.aiInstruction }
+          : {}),
+      },
+      target: {
+        type: "SpecificResource",
+        source,
+        selector: buildSelectors(comment),
+        htmlReviewKitTarget: comment.target,
+      },
+    })),
   };
-}
 
-function downloadJson(doc: Document, filename: string, value: unknown) {
-  const blob = new Blob([JSON.stringify(value, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = doc.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-  link.click();
-
-  URL.revokeObjectURL(url);
+  return [
+    "Apply these HTML Review Kit annotations to the source HTML artifact.",
+    "",
+    `Artifact: ${artifact.title ?? artifact.artifactId}`,
+    `Source file: ${source}`,
+    "",
+    "Process only annotations with motivation \"commenting\". Use target.htmlReviewKitTarget first, then FragmentSelector/data-hrk-id, TextQuoteSelector, CssSelector, XPathSelector, and nearby HTML context. Preserve semantic HTML and stable data-hrk-id anchors. Summarize which annotations were applied and which could not be resolved.",
+    "",
+    "HTML annotations:",
+    JSON.stringify(annotationCollection, null, 2),
+  ].join("\n");
 }
 
 async function copyText(doc: Document, text: string): Promise<void> {
@@ -166,15 +154,10 @@ export function createOverlay(
   modeButton.type = "button";
   modeButton.setAttribute("data-hrk-toggle-review-mode", "");
 
-  const exportButton = doc.createElement("button");
-  exportButton.type = "button";
-  exportButton.setAttribute("data-hrk-export-json", "");
-  exportButton.textContent = "Export JSON";
-
   const copyButton = doc.createElement("button");
   copyButton.type = "button";
   copyButton.setAttribute("data-hrk-copy-comments", "");
-  copyButton.textContent = "Copy annotations";
+  copyButton.textContent = "Copy prompt";
 
   const buttonStyle = [
     "border:1px solid #2563eb",
@@ -187,7 +170,6 @@ export function createOverlay(
     "pointer-events:auto",
   ].join(";");
   modeButton.style.cssText = buttonStyle;
-  exportButton.style.cssText = buttonStyle;
   copyButton.style.cssText = buttonStyle;
 
   function updateModeButton(mode = options.getMode()) {
@@ -199,24 +181,16 @@ export function createOverlay(
     options.setMode(options.getMode() === "comment" ? "off" : "comment");
   });
 
-  exportButton.addEventListener("click", () => {
-    downloadJson(
-      doc,
-      "html-review-comments.json",
-      options.exportReviewPacket(),
-    );
-  });
-
   copyButton.addEventListener("click", async () => {
-    const payload = buildAnnotationClipboardPayload(
+    const prompt = buildAnnotationPrompt(
       options.artifact,
       options.getComments(),
     );
-    await copyText(doc, JSON.stringify(payload, null, 2));
+    await copyText(doc, prompt);
   });
 
   updateModeButton();
-  toolbar.append(count, modeButton, exportButton, copyButton);
+  toolbar.append(count, modeButton, copyButton);
   overlay.append(toolbar);
 
   const style = doc.createElement("style");
