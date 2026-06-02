@@ -14,13 +14,13 @@ Only the static HTML AMD-script workflow is included.
 
 ## Package
 
-- `@html-review-kit/core`: framework-agnostic DOM review layer that builds browser scripts.
+- `@bharathnayak03/html-review-kit-core`: framework-agnostic DOM review layer that builds browser scripts.
 
 ## Build
 
 ```bash
 pnpm install
-pnpm --filter @html-review-kit/core build
+pnpm --filter @bharathnayak03/html-review-kit-core build
 ```
 
 The core build writes:
@@ -29,6 +29,13 @@ The core build writes:
 packages/core/dist/index.global.js
 packages/core/dist/index.amd.js
 packages/core/dist/html-review-kit-core.amd.js
+```
+
+Publish the npm package from `packages/core`, not the repository root:
+
+```bash
+cd packages/core
+npm publish --access public
 ```
 
 ## Static HTML Usage
@@ -43,10 +50,10 @@ Add stable anchors to the artifact:
 </main>
 ```
 
-Load the AMD script and initialize the review layer:
+Load the pinned AMD script from npm CDN and initialize the review layer:
 
 ```html
-<script src="./html-review-kit-core.amd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@bharathnayak03/html-review-kit-core@0.1.0/dist/html-review-kit-core.amd.js"></script>
 <script>
   const review = HTMLReviewKitCore.createReviewLayer({
     root: document.querySelector("[data-hrk-id='artifact-root']"),
@@ -61,6 +68,14 @@ Load the AMD script and initialize the review layer:
   review.enable();
 </script>
 ```
+
+For offline or self-contained artifacts, copy the built bundle next to the HTML artifact and load it locally:
+
+```html
+<script src="./html-review-kit-core.amd.js"></script>
+```
+
+Pin the package version so older artifacts keep using the same review script.
 
 ## Review Flow
 
