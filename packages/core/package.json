@@ -3,9 +3,15 @@
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.global.js",
+  "files": [
+    "dist"
+  ],
+  "unpkg": "./dist/html-review-kit-core.amd.js",
+  "jsdelivr": "./dist/html-review-kit-core.amd.js",
   "exports": {
     ".": "./dist/index.global.js",
     "./global": "./dist/index.global.js",
+    "./html-review-kit-core.amd.js": "./dist/html-review-kit-core.amd.js",
     "./amd": {
       "default": "./dist/index.amd.js"
     }
