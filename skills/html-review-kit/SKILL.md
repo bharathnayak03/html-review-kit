@@ -1,11 +1,11 @@
 ---
 name: html-review-kit
-description: Use when writing or updating HTML specs, static HTML artifacts, or agent workflows that mention html-review-kit, HTML Review Kit, data-hrk-id, or copied HTML annotations.
+description: Use when writing static HTML artifacts with HTML Review Kit anchors, or when applying copied HTML Review Kit annotations, AnnotationCollection data, data-hrk-id targets, or HTML artifact review comments.
 ---
 
 # HTML Review Kit
 
-Use this skill when a user asks for `html-review-kit` or when writing HTML specs that should be visually reviewable by an agent.
+Use this skill when a user asks for HTML Review Kit, writes static HTML that should be reviewable, or pastes copied HTML Review Kit annotations for an agent to apply.
 
 ## Static HTML Setup
 
@@ -50,8 +50,11 @@ The copied prompt already includes the HTML annotations and target selectors.
 
 When applying a copied prompt:
 
-1. Process annotations with `motivation: "commenting"`.
-2. Use `target.source` or the user's named file as the source file.
-3. Locate targets in this order: `target.htmlReviewKitTarget`, `FragmentSelector` / `data-hrk-id`, `TextQuoteSelector`, `CssSelector`, `XPathSelector`, nearby text, then HTML snippet.
-4. Preserve semantic HTML and existing `data-hrk-id` anchors.
-5. Summarize applied and unresolved annotations. Do not write a resolved JSON file unless the user explicitly asks for one.
+1. Read the copied prompt and its `AnnotationCollection`.
+2. Process annotations with `motivation: "commenting"`.
+3. Modify the source file identified by `target.source` or the user's named source file.
+4. Locate targets in this order: `target.htmlReviewKitTarget`, `FragmentSelector` with `data-hrk-id`, `TextQuoteSelector`, `CssSelector`, `XPathSelector`, nearby text, then HTML snippet.
+5. Preserve semantic HTML and stable `data-hrk-id` anchors.
+6. Summarize applied and unresolved annotations.
+
+Do not write resolved JSON output unless the user explicitly asks for it.
