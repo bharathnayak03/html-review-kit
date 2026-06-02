@@ -8,16 +8,16 @@ pnpm --filter @html-review-kit/core build
 
 The build produces `index.global.js`, `index.amd.js`, and `html-review-kit-core.amd.js` in `packages/core/dist`.
 
-Load one AMD script in the artifact:
-
-```html
-<script src="./html-review-kit-core.amd.js"></script>
-```
-
-For hosted artifacts or demos, load the pinned npm CDN script:
+Load the pinned npm CDN script in the artifact:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+```
+
+For offline or self-contained artifacts, copy the built bundle next to the HTML file and load it locally:
+
+```html
+<script src="./html-review-kit-core.amd.js"></script>
 ```
 
 The same published file is also available through unpkg:

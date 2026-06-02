@@ -43,10 +43,10 @@ Add stable anchors to the artifact:
 </main>
 ```
 
-Load the AMD script and initialize the review layer:
+Load the pinned AMD script from npm CDN and initialize the review layer:
 
 ```html
-<script src="./html-review-kit-core.amd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
 <script>
   const review = HTMLReviewKitCore.createReviewLayer({
     root: document.querySelector("[data-hrk-id='artifact-root']"),
@@ -62,10 +62,10 @@ Load the AMD script and initialize the review layer:
 </script>
 ```
 
-For hosted artifacts or demos, load a pinned npm CDN URL instead of copying the file locally:
+For offline or self-contained artifacts, copy the built bundle next to the HTML artifact and load it locally:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+<script src="./html-review-kit-core.amd.js"></script>
 ```
 
 Pin the package version so older artifacts keep using the same review script.

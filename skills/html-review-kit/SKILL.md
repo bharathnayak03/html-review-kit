@@ -10,10 +10,10 @@ Use this skill when a user asks for HTML Review Kit, writes static HTML that sho
 ## Static HTML Setup
 
 1. Add stable `data-hrk-id` anchors to important sections, cards, controls, and repeated items.
-2. Load the AMD browser bundle in the HTML artifact:
+2. Load the pinned AMD browser bundle in the HTML artifact:
 
 ```html
-<script src="./html-review-kit-core.amd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
 ```
 
 3. Add a small JavaScript initializer after the artifact markup:
@@ -34,7 +34,7 @@ Use this skill when a user asks for HTML Review Kit, writes static HTML that sho
 </script>
 ```
 
-Use the built bundle from `packages/core/dist/html-review-kit-core.amd.js` or `packages/core/dist/index.amd.js`.
+For offline or self-contained artifacts, copy the built bundle from `packages/core/dist/html-review-kit-core.amd.js` and load it as `./html-review-kit-core.amd.js`.
 
 ## Review Workflow
 
