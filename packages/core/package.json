@@ -2,21 +2,16 @@
   "name": "@html-review-kit/core",
   "version": "0.1.0",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.global.js",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
+    ".": "./dist/index.global.js",
+    "./global": "./dist/index.global.js",
     "./amd": {
       "default": "./dist/index.amd.js"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts && tsup src/index.ts --format iife --global-name HTMLReviewKitCore --platform browser --out-dir dist --no-splitting --clean false && node scripts/write-amd-bundle.mjs",
+    "build": "tsup src/index.ts --format iife --global-name HTMLReviewKitCore --platform browser --out-dir dist --no-splitting --clean && node scripts/write-amd-bundle.mjs",
     "test": "vitest run --environment jsdom",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit"
