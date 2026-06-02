@@ -14,6 +14,20 @@ Load one AMD script in the artifact:
 <script src="./html-review-kit-core.amd.js"></script>
 ```
 
+For hosted artifacts or demos, load the pinned npm CDN script:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+```
+
+The same published file is also available through unpkg:
+
+```html
+<script src="https://unpkg.com/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+```
+
+Pin the version in static artifacts. Avoid `@latest`, because old review packets should keep using the script version they were created against.
+
 Initialize it with plain JavaScript:
 
 ```html

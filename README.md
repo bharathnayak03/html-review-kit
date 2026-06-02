@@ -62,6 +62,14 @@ Load the AMD script and initialize the review layer:
 </script>
 ```
 
+For hosted artifacts or demos, load a pinned npm CDN URL instead of copying the file locally:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@html-review-kit/core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+```
+
+Pin the package version so older artifacts keep using the same review script.
+
 ## Review Flow
 
 The toolbar provides:
