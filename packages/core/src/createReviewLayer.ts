@@ -16,10 +16,11 @@ function getRootElement(root: HTMLElement | Document): HTMLElement {
   return root instanceof Document ? root.body : root;
 }
 
-export function createReviewLayer(options: CreateReviewLayerOptions): ReviewLayerInstance {
+export function createReviewLayer(
+  options: CreateReviewLayerOptions,
+): ReviewLayerInstance {
   const doc = getDocument(options.root);
   const rootElement = getRootElement(options.root);
-  const overlay = createOverlay(doc);
   let mode: ReviewMode = options.mode ?? "off";
   let enabled = false;
 
@@ -34,11 +35,57 @@ export function createReviewLayer(options: CreateReviewLayerOptions): ReviewLaye
       options.onCommentsChange?.(comments);
     },
   });
+  const overlay = createOverlay(doc, {
+    artifact: options.artifact,
+    root: rootElement,
+    getComments: store.getComments,
+    exportReviewPacket: store.exportReviewPacket,
+    getMode: () => mode,
+    setMode: setModeValue,
+  });
+
+  function setModeValue(nextMode: ReviewMode) {
+    mode = nextMode;
+    if (enabled) {
+      rootElement.dataset.hrkMode = mode;
+      overlay.setMode(mode);
+      if (mode !== "comment") clearHoverTarget();
+    }
+  }
+
+  let hoverTarget: Element | undefined;
+
+  function clearHoverTarget() {
+    hoverTarget?.removeAttribute("data-hrk-hover-target");
+    hoverTarget = undefined;
+  }
+
+  function handleMouseover(event: MouseEvent) {
+    if (!enabled || mode !== "comment" || options.readonly) return;
+    const target = event.target;
+    if (!(target instanceof Element) || target.closest("[data-hrk-overlay]"))
+      return;
+    if (target === hoverTarget) return;
+
+    clearHoverTarget();
+    hoverTarget = target;
+    hoverTarget.setAttribute("data-hrk-hover-target", "true");
+  }
+
+  function handleMouseout(event: MouseEvent) {
+    if (!hoverTarget) return;
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && hoverTarget.contains(relatedTarget))
+      return;
+
+    clearHoverTarget();
+  }
 
   function handleClick(event: MouseEvent) {
     if (!enabled || mode !== "comment" || options.readonly) return;
     const target = event.target;
-    if (!(target instanceof Element) || target.closest("[data-hrk-overlay]")) return;
+    if (!(target instanceof Element) || target.closest("[data-hrk-overlay]"))
+      return;
 
     const body = doc.defaultView?.prompt?.("Comment on this element");
     if (!body) return;
@@ -50,16 +97,13 @@ export function createReviewLayer(options: CreateReviewLayerOptions): ReviewLaye
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      mode = "off";
-      rootElement.dataset.hrkMode = mode;
+      setModeValue("off");
     }
     if (event.key.toLowerCase() === "c") {
-      mode = "comment";
-      rootElement.dataset.hrkMode = mode;
+      setModeValue("comment");
     }
     if (event.key.toLowerCase() === "v") {
-      mode = "inspect";
-      rootElement.dataset.hrkMode = mode;
+      setModeValue("inspect");
     }
   }
 
@@ -68,8 +112,10 @@ export function createReviewLayer(options: CreateReviewLayerOptions): ReviewLaye
     enabled = true;
     rootElement.append(overlay.element);
     overlay.render(store.getComments());
-    rootElement.dataset.hrkMode = mode;
+    setModeValue(mode);
     rootElement.addEventListener("click", handleClick, true);
+    rootElement.addEventListener("mouseover", handleMouseover, true);
+    rootElement.addEventListener("mouseout", handleMouseout, true);
     doc.addEventListener("keydown", handleKeydown);
   }
 
@@ -77,8 +123,11 @@ export function createReviewLayer(options: CreateReviewLayerOptions): ReviewLaye
     if (!enabled) return;
     enabled = false;
     overlay.destroy();
+    clearHoverTarget();
     delete rootElement.dataset.hrkMode;
     rootElement.removeEventListener("click", handleClick, true);
+    rootElement.removeEventListener("mouseover", handleMouseover, true);
+    rootElement.removeEventListener("mouseout", handleMouseout, true);
     doc.removeEventListener("keydown", handleKeydown);
   }
 
@@ -88,8 +137,7 @@ export function createReviewLayer(options: CreateReviewLayerOptions): ReviewLaye
     enable: mount,
     disable: unmount,
     setMode(nextMode) {
-      mode = nextMode;
-      if (enabled) rootElement.dataset.hrkMode = mode;
+      setModeValue(nextMode);
     },
     getComments: store.getComments,
     addComment(input: AddCommentInput) {

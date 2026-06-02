@@ -10,10 +10,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./amd": {
+      "default": "./dist/index.amd.js"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "build": "tsup src/index.ts --format esm,cjs --dts && tsup src/index.ts --format iife --global-name HTMLReviewKitCore --platform browser --out-dir dist --no-splitting --clean false && node scripts/write-amd-bundle.mjs",
     "test": "vitest run --environment jsdom",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit"
