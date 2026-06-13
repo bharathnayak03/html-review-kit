@@ -13,6 +13,8 @@ describe("createReviewLayer", () => {
       disable: expect.any(Function),
       setMode: expect.any(Function),
       getComments: expect.any(Function),
+      loadComments: expect.any(Function),
+      saveComments: expect.any(Function),
       addComment: expect.any(Function),
       updateComment: expect.any(Function),
       deleteComment: expect.any(Function),
@@ -20,6 +22,54 @@ describe("createReviewLayer", () => {
       importReviewPacket: expect.any(Function),
       destroy: expect.any(Function),
     });
+
+    review.destroy();
+  });
+
+  it("loads comments from storage and saves mutations through the public API", async () => {
+    const storage = {
+      load: vi.fn().mockResolvedValue([
+        {
+          id: "cmt_stored",
+          artifactId: "demo",
+          status: "open" as const,
+          body: "Stored comment.",
+          target: { anchorId: "hero" },
+          createdAt: "2026-06-01T10:00:00.000Z",
+        },
+      ]),
+      save: vi.fn().mockResolvedValue(undefined),
+    };
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      storage,
+    });
+
+    const loaded = await review.loadComments();
+
+    expect(loaded).toEqual([
+      {
+        id: "cmt_stored",
+        artifactId: "demo",
+        status: "open",
+        body: "Stored comment.",
+        target: { anchorId: "hero" },
+        createdAt: "2026-06-01T10:00:00.000Z",
+      },
+    ]);
+    expect(review.getComments()).toEqual(loaded);
+
+    const created = review.addComment({
+      body: "Persist this.",
+      target: { anchorId: "cta" },
+    });
+    await review.saveComments();
+
+    expect(storage.save).toHaveBeenCalledWith([
+      loaded[0],
+      created,
+    ]);
 
     review.destroy();
   });

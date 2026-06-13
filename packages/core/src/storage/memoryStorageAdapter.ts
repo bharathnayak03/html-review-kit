@@ -1,15 +1,19 @@
 import type { ArtifactComment, CommentStorageAdapter } from "../types";
 
+function cloneComments(comments: ArtifactComment[]): ArtifactComment[] {
+  return structuredClone(comments);
+}
+
 export function memoryStorageAdapter(initialComments: ArtifactComment[] = []): CommentStorageAdapter {
-  let comments = initialComments.map((comment) => ({ ...comment }));
+  let comments = cloneComments(initialComments);
 
   return {
     async load() {
-      return comments.map((comment) => ({ ...comment }));
+      return cloneComments(comments);
     },
 
     async save(nextComments) {
-      comments = nextComments.map((comment) => ({ ...comment }));
+      comments = cloneComments(nextComments);
     },
   };
 }

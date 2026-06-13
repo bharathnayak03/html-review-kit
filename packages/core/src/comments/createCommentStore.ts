@@ -3,20 +3,25 @@ import type {
   ArtifactComment,
   ArtifactInfo,
   ArtifactReviewPacket,
+  CommentStorageAdapter,
 } from "../types";
 import { exportReviewPacket } from "./exportReviewPacket";
 
 export interface CreateCommentStoreOptions {
   artifact: ArtifactInfo;
   comments?: ArtifactComment[];
+  storage?: CommentStorageAdapter;
   onCommentCreate?: (comment: ArtifactComment) => void;
   onCommentUpdate?: (comment: ArtifactComment) => void;
   onCommentDelete?: (commentId: string) => void;
   onCommentsChange?: (comments: ArtifactComment[]) => void;
+  onStorageError?: (error: unknown) => void;
 }
 
 export interface CommentStore {
   getComments(): ArtifactComment[];
+  loadComments(): Promise<ArtifactComment[]>;
+  saveComments(): Promise<void>;
   addComment(input: AddCommentInput): ArtifactComment;
   updateComment(id: string, patch: Partial<ArtifactComment>): void;
   deleteComment(id: string): void;
@@ -35,21 +40,72 @@ function createCommentId(): string {
   return `cmt_${Date.now()}_${fallbackIdCounter}`;
 }
 
+function cloneComment(comment: ArtifactComment): ArtifactComment {
+  return structuredClone(comment);
+}
+
 function cloneComments(comments: ArtifactComment[]): ArtifactComment[] {
-  return comments.map((comment) => ({ ...comment, target: { ...comment.target } }));
+  return comments.map(cloneComment);
 }
 
 export function createCommentStore(options: CreateCommentStoreOptions): CommentStore {
   let comments = cloneComments(options.comments ?? []);
+  let pendingSave: Promise<void> | undefined;
+  let saveCount = 0;
+
+  const enqueueSave = (snapshot: ArtifactComment[]): Promise<void> => {
+    if (!options.storage) return Promise.resolve();
+
+    saveCount += 1;
+    const runSave = () => options.storage?.save(snapshot) ?? Promise.resolve();
+    const save = pendingSave ? pendingSave.then(runSave) : runSave();
+    const trackedSave = save.catch(() => undefined);
+    pendingSave = trackedSave;
+    void trackedSave.finally(() => {
+      if (pendingSave === trackedSave) {
+        pendingSave = undefined;
+      }
+    });
+    return save;
+  };
+
+  const saveComments = () => {
+    return enqueueSave(cloneComments(comments));
+  };
 
   const emitChange = () => {
     options.onCommentsChange?.(cloneComments(comments));
+    void enqueueSave(cloneComments(comments)).catch((error: unknown) => {
+      options.onStorageError?.(error);
+    });
   };
 
   return {
     getComments() {
       return cloneComments(comments);
     },
+
+    async loadComments() {
+      if (!options.storage) return cloneComments(comments);
+      const pendingSaveBeforeLoad = pendingSave;
+      const saveCountBeforeLoad = saveCount;
+      comments = cloneComments(await options.storage.load());
+      const pendingSaveAfterLoad = pendingSave;
+      const shouldPersistLoadedComments =
+        saveCountBeforeLoad > 0 ||
+        saveCount > saveCountBeforeLoad ||
+        pendingSaveBeforeLoad !== undefined ||
+        pendingSaveAfterLoad !== undefined;
+      options.onCommentsChange?.(cloneComments(comments));
+      if (shouldPersistLoadedComments) {
+        void enqueueSave(cloneComments(comments)).catch((error: unknown) => {
+          options.onStorageError?.(error);
+        });
+      }
+      return cloneComments(comments);
+    },
+
+    saveComments,
 
     addComment(input) {
       const comment: ArtifactComment = {
@@ -58,28 +114,34 @@ export function createCommentStore(options: CreateCommentStoreOptions): CommentS
         status: "open",
         body: input.body,
         aiInstruction: input.aiInstruction,
-        target: input.target,
-        author: input.author,
-        metadata: input.metadata,
+        target: { ...input.target },
+        author: input.author ? { ...input.author } : undefined,
+        metadata: input.metadata ? { ...input.metadata } : undefined,
         createdAt: new Date().toISOString(),
       };
 
       comments = [...comments, comment];
-      options.onCommentCreate?.({ ...comment });
+      options.onCommentCreate?.(cloneComment(comment));
       emitChange();
-      return { ...comment };
+      return cloneComment(comment);
     },
 
     updateComment(id, patch) {
       let updated: ArtifactComment | undefined;
       comments = comments.map((comment) => {
         if (comment.id !== id) return comment;
-        updated = { ...comment, ...patch, id, updatedAt: new Date().toISOString() };
+        updated = cloneComment({
+          ...comment,
+          ...patch,
+          id,
+          target: patch.target ? { ...patch.target } : comment.target,
+          updatedAt: new Date().toISOString(),
+        });
         return updated;
       });
 
       if (updated) {
-        options.onCommentUpdate?.({ ...updated });
+        options.onCommentUpdate?.(cloneComment(updated));
         emitChange();
       }
     },

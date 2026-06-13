@@ -23,6 +23,22 @@ describe("storage adapters", () => {
     expect(await adapter.load()).toEqual(comments);
   });
 
+  it("keeps memory storage snapshots isolated from caller-owned comments", async () => {
+    const initialComments = structuredClone(comments);
+    const adapter = memoryStorageAdapter(initialComments);
+    const loaded = await adapter.load();
+
+    initialComments[0].target.anchorId = "mutated-source";
+    loaded[0].target.anchorId = "mutated-loaded";
+
+    expect(await adapter.load()).toEqual([
+      {
+        ...initialComments[0],
+        target: { anchorId: "hero" },
+      },
+    ]);
+  });
+
   it("stores comments in localStorage", async () => {
     const adapter = localStorageAdapter("hrk:test");
 

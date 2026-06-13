@@ -74,12 +74,14 @@ export interface CreateReviewLayerOptions {
   artifact: ArtifactInfo;
   mode?: ReviewMode;
   comments?: ArtifactComment[];
+  storage?: CommentStorageAdapter;
   autoGenerateAnchors?: boolean;
   readonly?: boolean;
   onCommentCreate?: (comment: ArtifactComment) => void;
   onCommentUpdate?: (comment: ArtifactComment) => void;
   onCommentDelete?: (commentId: string) => void;
   onCommentsChange?: (comments: ArtifactComment[]) => void;
+  onStorageError?: (error: unknown) => void;
 }
 
 export interface ReviewLayerInstance {
@@ -87,6 +89,8 @@ export interface ReviewLayerInstance {
   disable(): void;
   setMode(mode: ReviewMode): void;
   getComments(): ArtifactComment[];
+  loadComments(): Promise<ArtifactComment[]>;
+  saveComments(): Promise<void>;
   addComment(input: AddCommentInput): ArtifactComment;
   updateComment(id: string, patch: Partial<ArtifactComment>): void;
   deleteComment(id: string): void;
