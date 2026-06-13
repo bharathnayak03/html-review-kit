@@ -3,21 +3,31 @@
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.global.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "unpkg": "./dist/html-review-kit-core.amd.js",
   "jsdelivr": "./dist/html-review-kit-core.amd.js",
   "exports": {
-    ".": "./dist/index.global.js",
-    "./global": "./dist/index.global.js",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "browser": "./dist/index.js",
+      "default": "./dist/index.global.js"
+    },
+    "./global": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.global.js"
+    },
     "./html-review-kit-core.amd.js": "./dist/html-review-kit-core.amd.js",
     "./amd": {
       "default": "./dist/index.amd.js"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format iife --global-name HTMLReviewKitCore --platform browser --out-dir dist --no-splitting --clean && node scripts/write-amd-bundle.mjs",
+    "build": "tsup src/index.ts --format esm,iife --global-name HTMLReviewKitCore --platform browser --out-dir dist --no-splitting --clean --dts && node scripts/write-amd-bundle.mjs",
     "test": "vitest run --environment jsdom",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit"
