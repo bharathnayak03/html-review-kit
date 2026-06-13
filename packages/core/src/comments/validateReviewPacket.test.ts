@@ -108,6 +108,29 @@ describe("validateReviewPacket", () => {
     });
   });
 
+  it("rejects invalid calendar timestamps", () => {
+    expect(
+      validateReviewPacket({
+        ...validPacket,
+        exportedAt: "2026-02-30T10:00:00.000Z",
+        comments: [
+          {
+            ...validPacket.comments[0],
+            createdAt: "2026-06-01T24:00:00.000Z",
+            updatedAt: "2026-13-01T10:00:00.000Z",
+          },
+        ],
+      }),
+    ).toEqual({
+      ok: false,
+      errors: [
+        "comments[0].createdAt must be an ISO timestamp string",
+        "comments[0].updatedAt must be an ISO timestamp string",
+        "exportedAt must be an ISO timestamp string",
+      ],
+    });
+  });
+
   it("rejects malformed target fields", () => {
     expect(
       validateReviewPacket({
@@ -155,6 +178,38 @@ describe("validateReviewPacket", () => {
         "comments[0].target.elementFingerprint.ariaLabel must be a string",
         "comments[0].target.elementFingerprint.headingContext must be a string",
         "comments[0].target.elementFingerprint.nearbyText must be a string",
+      ],
+    });
+  });
+
+  it("rejects negative and fractional text positions", () => {
+    expect(
+      validateReviewPacket({
+        ...validPacket,
+        comments: [
+          {
+            ...validPacket.comments[0],
+            target: {
+              textPosition: { start: -1, end: 4.5 },
+            },
+          },
+          {
+            ...validPacket.comments[0],
+            id: "cmt_002",
+            target: {
+              textPosition: { start: 1.5, end: -2 },
+            },
+          },
+        ],
+      }),
+    ).toEqual({
+      ok: false,
+      errors: [
+        "comments[0].target.textPosition.start must be a non-negative integer",
+        "comments[0].target.textPosition.end must be a non-negative integer",
+        "comments[1].target.textPosition.start must be a non-negative integer",
+        "comments[1].target.textPosition.end must be a non-negative integer",
+        "comments[1].target.textPosition.start must be <= textPosition.end",
       ],
     });
   });

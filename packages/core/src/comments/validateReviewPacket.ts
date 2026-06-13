@@ -3,7 +3,7 @@ import type { ValidationResult } from "../types";
 const ARTIFACT_SOURCE_TYPES = ["html", "unknown"] as const;
 const COMMENT_STATUSES = ["open", "resolved", "ignored"] as const;
 const ISO_TIMESTAMP_PATTERN =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
+  /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})(?:\.(?<millisecond>\d{1,3}))?Z$/;
 
 function isRecord(input: unknown): input is Record<string, unknown> {
   return typeof input === "object" && input !== null && !Array.isArray(input);
@@ -14,10 +14,37 @@ function isNonEmptyString(input: unknown): input is string {
 }
 
 function isIsoTimestamp(input: unknown): input is string {
+  if (typeof input !== "string") {
+    return false;
+  }
+
+  const match = ISO_TIMESTAMP_PATTERN.exec(input);
+  if (!match?.groups) {
+    return false;
+  }
+
+  const year = Number(match.groups.year);
+  const month = Number(match.groups.month);
+  const day = Number(match.groups.day);
+  const hour = Number(match.groups.hour);
+  const minute = Number(match.groups.minute);
+  const second = Number(match.groups.second);
+  const millisecond = Number(match.groups.millisecond?.padEnd(3, "0") ?? "0");
+  const timestamp = Date.parse(input);
+
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
+
+  const date = new Date(timestamp);
   return (
-    typeof input === "string" &&
-    ISO_TIMESTAMP_PATTERN.test(input) &&
-    !Number.isNaN(Date.parse(input))
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() + 1 === month &&
+    date.getUTCDate() === day &&
+    date.getUTCHours() === hour &&
+    date.getUTCMinutes() === minute &&
+    date.getUTCSeconds() === second &&
+    date.getUTCMilliseconds() === millisecond
   );
 }
 
@@ -118,13 +145,19 @@ function validateTextPosition(
   const { start, end } = textPosition;
   const hasNumericStart = typeof start === "number" && Number.isFinite(start);
   const hasNumericEnd = typeof end === "number" && Number.isFinite(end);
+  const hasValidStart = hasNumericStart && Number.isInteger(start) && start >= 0;
+  const hasValidEnd = hasNumericEnd && Number.isInteger(end) && end >= 0;
 
   if (!hasNumericStart) {
     errors.push(`${fieldPath}.start must be a number`);
+  } else if (!hasValidStart) {
+    errors.push(`${fieldPath}.start must be a non-negative integer`);
   }
 
   if (!hasNumericEnd) {
     errors.push(`${fieldPath}.end must be a number`);
+  } else if (!hasValidEnd) {
+    errors.push(`${fieldPath}.end must be a non-negative integer`);
   }
 
   if (hasNumericStart && hasNumericEnd && start > end) {
