@@ -17,9 +17,6 @@
       "browser": "./dist/index.js",
       "default": "./dist/index.global.js"
     },
-    "./global": {
-      "default": "./dist/index.global.js"
-    },
     "./html-review-kit-core.amd.js": "./dist/html-review-kit-core.amd.js",
     "./amd": {
       "default": "./dist/index.amd.js"

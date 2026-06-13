@@ -21,9 +21,6 @@ type PackageJson = {
       browser?: string;
       default?: string;
     };
-    "./global"?: {
-      default?: string;
-    };
     "./html-review-kit-core.amd.js"?: string;
     "./amd"?: {
       default?: string;
@@ -50,10 +47,7 @@ describe("package metadata", () => {
       browser: "./dist/index.js",
       default: "./dist/index.global.js",
     });
-    expect(packageJson.exports?.["./global"]).toEqual({
-      default: "./dist/index.global.js",
-    });
-    expect(packageJson.exports?.["./global"]).not.toHaveProperty("types");
+    expect(packageJson.exports).not.toHaveProperty("./global");
     expect(packageJson.exports?.["./html-review-kit-core.amd.js"]).toBe(
       "./dist/html-review-kit-core.amd.js",
     );
