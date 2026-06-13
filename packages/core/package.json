@@ -14,8 +14,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "browser": "./dist/index.js",
-      "default": "./dist/index.global.js"
+      "browser": "./dist/index.js"
     },
     "./html-review-kit-core.amd.js": "./dist/html-review-kit-core.amd.js",
     "./amd": {
