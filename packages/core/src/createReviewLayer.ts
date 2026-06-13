@@ -27,6 +27,7 @@ export function createReviewLayer(
   const store = createCommentStore({
     artifact: options.artifact,
     comments: options.comments,
+    storage: options.storage,
     onCommentCreate: options.onCommentCreate,
     onCommentUpdate: options.onCommentUpdate,
     onCommentDelete: options.onCommentDelete,
@@ -140,6 +141,12 @@ export function createReviewLayer(
       setModeValue(nextMode);
     },
     getComments: store.getComments,
+    async loadComments() {
+      const comments = await store.loadComments();
+      overlay.render(comments);
+      return comments;
+    },
+    saveComments: store.saveComments,
     addComment(input: AddCommentInput) {
       return store.addComment(input);
     },
