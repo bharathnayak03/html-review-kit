@@ -159,6 +159,97 @@ describe("createReviewLayer", () => {
     review.destroy();
   });
 
+  it("flips inline comments left when the right edge has insufficient viewport space", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 360,
+    });
+    const target = document.querySelector("[data-hrk-id='hero']");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      value: () =>
+        ({
+          bottom: 80,
+          height: 60,
+          left: 260,
+          right: 340,
+          top: 20,
+          width: 80,
+          x: 260,
+          y: 20,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    review.addComment({
+      body: "Keep this visible.",
+      target: { anchorId: "hero" },
+    });
+
+    const inlineComment = document.querySelector<HTMLElement>(
+      "[data-hrk-inline-comment]",
+    );
+
+    expect(inlineComment?.style.left).toBe("32px");
+    expect(inlineComment?.style.top).toBe("20px");
+    expect(inlineComment?.style.width).toBe("220px");
+
+    review.destroy();
+  });
+
+  it("clamps comment markers to visible viewport coordinates", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 320,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 200,
+    });
+    const target = document.querySelector("[data-hrk-id='hero']");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      value: () =>
+        ({
+          bottom: -10,
+          height: 30,
+          left: 480,
+          right: 520,
+          top: -40,
+          width: 40,
+          x: 480,
+          y: -40,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    review.addComment({
+      body: "Visible marker.",
+      target: { anchorId: "hero" },
+    });
+
+    const marker = document.querySelector<HTMLElement>(
+      "[data-hrk-comment-marker]",
+    );
+
+    expect(marker?.style.left).toBe("294px");
+    expect(marker?.style.top).toBe("6px");
+
+    review.destroy();
+  });
+
   it("enables review mode from the toolbar", () => {
     document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
     const review = createReviewLayer({

@@ -118,11 +118,18 @@ async function copyText(doc: Document, text: string): Promise<void> {
   textarea.remove();
 }
 
+function clamp(value: number, min: number, max: number): number {
+  if (max < min) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
 export function createOverlay(
   doc: Document,
   options: CreateOverlayOptions,
 ): OverlayController {
   const cleanupHoverHandlers: Array<() => void> = [];
+  let cleanupViewportHandlers: (() => void) | undefined;
+  let renderFrame: number | undefined;
   const overlay = doc.createElement("div");
   overlay.setAttribute("data-hrk-overlay", "");
   overlay.style.cssText =
@@ -210,6 +217,35 @@ export function createOverlay(
       .forEach((element) => element.remove());
   }
 
+  function scheduleRender() {
+    if (renderFrame !== undefined) return;
+    const win = doc.defaultView;
+    const renderComments = () => {
+      renderFrame = undefined;
+      controller.render(options.getComments());
+    };
+
+    if (win?.requestAnimationFrame) {
+      renderFrame = win.requestAnimationFrame(renderComments);
+      return;
+    }
+
+    renderFrame = setTimeout(renderComments, 0) as unknown as number;
+  }
+
+  function ensureViewportHandlers() {
+    if (cleanupViewportHandlers) return;
+    const win = doc.defaultView;
+    if (!win) return;
+
+    win.addEventListener("resize", scheduleRender);
+    win.addEventListener("scroll", scheduleRender, { passive: true });
+    cleanupViewportHandlers = () => {
+      win.removeEventListener("resize", scheduleRender);
+      win.removeEventListener("scroll", scheduleRender);
+    };
+  }
+
   function bindHoverVisibility(
     target: Element,
     marker: HTMLElement,
@@ -267,11 +303,28 @@ export function createOverlay(
 
   function positionInlineComment(card: HTMLElement, target: Element) {
     const rect = target.getBoundingClientRect();
-    const scrollX = doc.defaultView?.scrollX ?? 0;
-    const scrollY = doc.defaultView?.scrollY ?? 0;
-    const left = Math.max(12, rect.right + scrollX + 8);
-    const top = Math.max(12, rect.top + scrollY);
-    const width = Math.max(220, Math.min(420, rect.width || 320));
+    const win = doc.defaultView;
+    const scrollX = win?.scrollX ?? 0;
+    const scrollY = win?.scrollY ?? 0;
+    const viewportWidth = win?.innerWidth ?? doc.documentElement.clientWidth;
+    const viewportHeight = win?.innerHeight ?? doc.documentElement.clientHeight;
+    const margin = 12;
+    const gap = 8;
+    const preferredWidth = Math.max(220, Math.min(420, rect.width || 320));
+    const width = Math.min(
+      preferredWidth,
+      Math.max(1, viewportWidth - margin * 2),
+    );
+    const viewportLeft = scrollX + margin;
+    const viewportRight = scrollX + viewportWidth - margin;
+    const viewportTop = scrollY + margin;
+    const viewportBottom = scrollY + viewportHeight - margin;
+    const rightSideLeft = rect.right + scrollX + gap;
+    const leftSideLeft = rect.left + scrollX - gap - width;
+    const fitsRight = rightSideLeft + width <= viewportRight;
+    const preferredLeft = fitsRight ? rightSideLeft : leftSideLeft;
+    const left = clamp(preferredLeft, viewportLeft, viewportRight - width);
+    const top = clamp(rect.top + scrollY, viewportTop, viewportBottom);
 
     card.style.left = `${left}px`;
     card.style.top = `${top}px`;
@@ -284,10 +337,23 @@ export function createOverlay(
     offset: number,
   ) {
     const rect = target.getBoundingClientRect();
-    const scrollX = doc.defaultView?.scrollX ?? 0;
-    const scrollY = doc.defaultView?.scrollY ?? 0;
-    const left = Math.max(6, rect.right + scrollX - 10 + offset);
-    const top = Math.max(6, rect.top + scrollY - 10);
+    const win = doc.defaultView;
+    const scrollX = win?.scrollX ?? 0;
+    const scrollY = win?.scrollY ?? 0;
+    const viewportWidth = win?.innerWidth ?? doc.documentElement.clientWidth;
+    const viewportHeight = win?.innerHeight ?? doc.documentElement.clientHeight;
+    const margin = 6;
+    const markerSize = 20;
+    const left = clamp(
+      rect.right + scrollX - markerSize / 2 + offset,
+      scrollX + margin,
+      scrollX + viewportWidth - markerSize - margin,
+    );
+    const top = clamp(
+      rect.top + scrollY - markerSize / 2,
+      scrollY + margin,
+      scrollY + viewportHeight - markerSize - margin,
+    );
 
     marker.style.left = `${left}px`;
     marker.style.top = `${top}px`;
@@ -351,9 +417,10 @@ export function createOverlay(
     return card;
   }
 
-  return {
+  const controller: OverlayController = {
     element: overlay,
     render(comments) {
+      ensureViewportHandlers();
       clearInlineComments();
       count.textContent = `${comments.filter((comment) => comment.status === "open").length} open`;
       const targetCounts = new WeakMap<Element, number>();
@@ -381,7 +448,15 @@ export function createOverlay(
     },
     destroy() {
       clearInlineComments();
+      cleanupViewportHandlers?.();
+      cleanupViewportHandlers = undefined;
+      if (renderFrame !== undefined) {
+        doc.defaultView?.cancelAnimationFrame?.(renderFrame);
+        renderFrame = undefined;
+      }
       overlay.remove();
     },
   };
+
+  return controller;
 }
