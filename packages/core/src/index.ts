@@ -5,6 +5,7 @@ export * from "./anchors/generateCssSelector";
 export * from "./anchors/generateXPath";
 export * from "./anchors/resolveTarget";
 export * from "./comments/createCommentStore";
+export * from "./comments/buildAnnotationPrompt";
 export * from "./comments/exportReviewPacket";
 export * from "./comments/validateReviewPacket";
 export * from "./createReviewLayer";
