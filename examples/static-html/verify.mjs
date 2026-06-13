@@ -44,13 +44,25 @@ if (duplicateAnchors.length > 0) {
 
 const requiredReadme = [
   "pnpm --filter @bharathnayak03/html-review-kit-core build",
-  "open examples/static-html/index.html",
-  "python3 -m http.server 4173 --directory examples/static-html",
-  "http://localhost:4173",
+  "python3 -m http.server 4173 --directory .",
+  "open http://localhost:4173/examples/static-html/",
+  "http://localhost:4173/examples/static-html/",
 ];
 
 for (const snippet of requiredReadme) {
   if (!readme.includes(snippet)) {
     throw new Error(`Missing expected README snippet: ${snippet}`);
+  }
+}
+
+const staleReadme = [
+  "open examples/static-html/index.html",
+  "python3 -m http.server 4173 --directory examples/static-html",
+  "http://localhost:4173\n",
+];
+
+for (const snippet of staleReadme) {
+  if (readme.includes(snippet)) {
+    throw new Error(`README still documents stale command: ${snippet}`);
   }
 }

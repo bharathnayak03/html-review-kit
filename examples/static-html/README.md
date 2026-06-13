@@ -9,22 +9,22 @@ Build the local AMD bundle first:
 pnpm --filter @bharathnayak03/html-review-kit-core build
 ```
 
-Then open the artifact directly:
+Then serve the repository root:
 
 ```bash
-open examples/static-html/index.html
+python3 -m http.server 4173 --directory .
 ```
 
-Or serve the example directory:
+Then open the static HTML example:
 
 ```bash
-python3 -m http.server 4173 --directory examples/static-html
+open http://localhost:4173/examples/static-html/
 ```
 
-Then visit:
+Or visit:
 
 ```text
-http://localhost:4173
+http://localhost:4173/examples/static-html/
 ```
 
 The HTML loads the built bundle from:
