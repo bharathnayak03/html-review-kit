@@ -10,6 +10,7 @@
     "lint": "turbo lint",
     "dev": "turbo dev",
     "typecheck": "turbo typecheck",
+    "smoke:static-html": "node examples/static-html/verify.mjs",
     "format": "prettier --write ."
   },
   "devDependencies": {
