@@ -81,7 +81,7 @@ Pin the package version so older artifacts keep using the same review script.
 
 The toolbar provides:
 
-- `Enable review mode` / `Disable review mode`
+- `Off`, `Comment`, and `Inspect` mode controls
 - `Copy prompt`
 
 `Copy prompt` copies agent-ready instructions plus the open HTML annotations and target selectors. Paste that prompt into a coding agent to apply the comments to the source HTML.
