@@ -118,11 +118,40 @@ async function copyText(doc: Document, text: string): Promise<void> {
   textarea.remove();
 }
 
+function clamp(value: number, min: number, max: number): number {
+  if (max < min) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+function measureInlineCommentHeight(card: HTMLElement): number {
+  const measuredHeight =
+    card.offsetHeight || card.scrollHeight || card.getBoundingClientRect().height;
+  if (measuredHeight > 0) return measuredHeight;
+
+  if (!card.isConnected) return 80;
+
+  const previousDisplay = card.style.display;
+  const previousVisibility = card.style.visibility;
+  card.style.display = "block";
+  card.style.visibility = "hidden";
+
+  const visibleHeight =
+    card.offsetHeight || card.scrollHeight || card.getBoundingClientRect().height;
+
+  card.style.display = previousDisplay;
+  card.style.visibility = previousVisibility;
+
+  return visibleHeight || 80;
+}
+
 export function createOverlay(
   doc: Document,
   options: CreateOverlayOptions,
 ): OverlayController {
   const cleanupHoverHandlers: Array<() => void> = [];
+  let cleanupViewportHandlers: (() => void) | undefined;
+  let renderFrame: number | undefined;
+  let renderTimeout: number | undefined;
   const overlay = doc.createElement("div");
   overlay.setAttribute("data-hrk-overlay", "");
   overlay.style.cssText =
@@ -210,6 +239,38 @@ export function createOverlay(
       .forEach((element) => element.remove());
   }
 
+  function scheduleRender() {
+    if (renderFrame !== undefined || renderTimeout !== undefined) return;
+    const win = doc.defaultView;
+    const renderComments = () => {
+      renderFrame = undefined;
+      renderTimeout = undefined;
+      controller.render(options.getComments());
+    };
+
+    if (win?.requestAnimationFrame) {
+      renderFrame = win.requestAnimationFrame(renderComments);
+      return;
+    }
+
+    renderTimeout = win
+      ? win.setTimeout(renderComments, 0)
+      : (setTimeout(renderComments, 0) as unknown as number);
+  }
+
+  function ensureViewportHandlers() {
+    if (cleanupViewportHandlers) return;
+    const win = doc.defaultView;
+    if (!win) return;
+
+    win.addEventListener("resize", scheduleRender);
+    win.addEventListener("scroll", scheduleRender, { passive: true });
+    cleanupViewportHandlers = () => {
+      win.removeEventListener("resize", scheduleRender);
+      win.removeEventListener("scroll", scheduleRender);
+    };
+  }
+
   function bindHoverVisibility(
     target: Element,
     marker: HTMLElement,
@@ -265,17 +326,43 @@ export function createOverlay(
     sync();
   }
 
-  function positionInlineComment(card: HTMLElement, target: Element) {
+  function positionInlineComment(
+    card: HTMLElement,
+    target: Element,
+    stackOffset = 0,
+  ) {
     const rect = target.getBoundingClientRect();
-    const scrollX = doc.defaultView?.scrollX ?? 0;
-    const scrollY = doc.defaultView?.scrollY ?? 0;
-    const left = Math.max(12, rect.right + scrollX + 8);
-    const top = Math.max(12, rect.top + scrollY);
-    const width = Math.max(220, Math.min(420, rect.width || 320));
+    const win = doc.defaultView;
+    const scrollX = win?.scrollX ?? 0;
+    const scrollY = win?.scrollY ?? 0;
+    const viewportWidth = win?.innerWidth ?? doc.documentElement.clientWidth;
+    const viewportHeight = win?.innerHeight ?? doc.documentElement.clientHeight;
+    const margin = 12;
+    const gap = 8;
+    const preferredWidth = Math.max(220, Math.min(420, rect.width || 320));
+    const width = Math.min(
+      preferredWidth,
+      Math.max(1, viewportWidth - margin * 2),
+    );
+    const viewportLeft = scrollX + margin;
+    const viewportRight = scrollX + viewportWidth - margin;
+    const viewportTop = scrollY + margin;
+    const viewportBottom = scrollY + viewportHeight - margin;
+    const rightSideLeft = rect.right + scrollX + gap;
+    const leftSideLeft = rect.left + scrollX - gap - width;
+    const fitsRight = rightSideLeft + width <= viewportRight;
+    const preferredLeft = fitsRight ? rightSideLeft : leftSideLeft;
+    const left = clamp(preferredLeft, viewportLeft, viewportRight - width);
+    card.style.width = `${width}px`;
+    const height = measureInlineCommentHeight(card);
+    const top = clamp(
+      rect.top + scrollY + stackOffset,
+      viewportTop,
+      viewportBottom - height,
+    );
 
     card.style.left = `${left}px`;
     card.style.top = `${top}px`;
-    card.style.width = `${width}px`;
   }
 
   function positionMarker(
@@ -284,10 +371,23 @@ export function createOverlay(
     offset: number,
   ) {
     const rect = target.getBoundingClientRect();
-    const scrollX = doc.defaultView?.scrollX ?? 0;
-    const scrollY = doc.defaultView?.scrollY ?? 0;
-    const left = Math.max(6, rect.right + scrollX - 10 + offset);
-    const top = Math.max(6, rect.top + scrollY - 10);
+    const win = doc.defaultView;
+    const scrollX = win?.scrollX ?? 0;
+    const scrollY = win?.scrollY ?? 0;
+    const viewportWidth = win?.innerWidth ?? doc.documentElement.clientWidth;
+    const viewportHeight = win?.innerHeight ?? doc.documentElement.clientHeight;
+    const margin = 6;
+    const markerSize = 20;
+    const left = clamp(
+      rect.right + scrollX - markerSize / 2 + offset,
+      scrollX + margin,
+      scrollX + viewportWidth - markerSize - margin,
+    );
+    const top = clamp(
+      rect.top + scrollY - markerSize / 2,
+      scrollY + margin,
+      scrollY + viewportHeight - markerSize - margin,
+    );
 
     marker.style.left = `${left}px`;
     marker.style.top = `${top}px`;
@@ -351,9 +451,10 @@ export function createOverlay(
     return card;
   }
 
-  return {
+  const controller: OverlayController = {
     element: overlay,
     render(comments) {
+      ensureViewportHandlers();
       clearInlineComments();
       count.textContent = `${comments.filter((comment) => comment.status === "open").length} open`;
       const targetCounts = new WeakMap<Element, number>();
@@ -363,14 +464,14 @@ export function createOverlay(
         const card = createInlineComment(comment, index);
         if (target) {
           const previousCount = targetCounts.get(target) ?? 0;
+          const stackOffset = previousCount * 12;
           const marker = createCommentMarker(comment, index);
-          positionMarker(marker, target, previousCount * 12);
-          positionInlineComment(card, target);
-          card.style.transform = `translateY(${previousCount * 12}px)`;
+          positionMarker(marker, target, stackOffset);
           targetCounts.set(target, previousCount + 1);
-          bindHoverVisibility(target, marker, card);
           overlay.append(marker);
           overlay.append(card);
+          positionInlineComment(card, target, stackOffset);
+          bindHoverVisibility(target, marker, card);
         } else {
           overlay.append(card);
         }
@@ -381,7 +482,23 @@ export function createOverlay(
     },
     destroy() {
       clearInlineComments();
+      cleanupViewportHandlers?.();
+      cleanupViewportHandlers = undefined;
+      if (renderFrame !== undefined) {
+        doc.defaultView?.cancelAnimationFrame?.(renderFrame);
+        renderFrame = undefined;
+      }
+      if (renderTimeout !== undefined) {
+        if (doc.defaultView) {
+          doc.defaultView.clearTimeout(renderTimeout);
+        } else {
+          clearTimeout(renderTimeout);
+        }
+        renderTimeout = undefined;
+      }
       overlay.remove();
     },
   };
+
+  return controller;
 }

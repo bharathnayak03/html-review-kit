@@ -159,6 +159,238 @@ describe("createReviewLayer", () => {
     review.destroy();
   });
 
+  it("flips inline comments left when the right edge has insufficient viewport space", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 360,
+    });
+    const target = document.querySelector("[data-hrk-id='hero']");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      value: () =>
+        ({
+          bottom: 80,
+          height: 60,
+          left: 260,
+          right: 340,
+          top: 20,
+          width: 80,
+          x: 260,
+          y: 20,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    review.addComment({
+      body: "Keep this visible.",
+      target: { anchorId: "hero" },
+    });
+
+    const inlineComment = document.querySelector<HTMLElement>(
+      "[data-hrk-inline-comment]",
+    );
+
+    expect(inlineComment?.style.left).toBe("32px");
+    expect(inlineComment?.style.top).toBe("20px");
+    expect(inlineComment?.style.width).toBe("220px");
+
+    review.destroy();
+  });
+
+  it("clamps inline comment cards above the viewport bottom", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 200,
+    });
+    const target = document.querySelector("[data-hrk-id='hero']");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      value: () =>
+        ({
+          bottom: 230,
+          height: 40,
+          left: 20,
+          right: 180,
+          top: 190,
+          width: 160,
+          x: 20,
+          y: 190,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+    const measuredHeight = 72;
+    const offsetHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+      .mockReturnValue(measuredHeight);
+
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    review.addComment({
+      body: "Keep this visible near the bottom.",
+      target: { anchorId: "hero" },
+    });
+
+    const inlineComment = document.querySelector<HTMLElement>(
+      "[data-hrk-inline-comment]",
+    );
+
+    expect(inlineComment?.style.top).toBe(`${200 - 12 - measuredHeight}px`);
+
+    offsetHeightSpy.mockRestore();
+    review.destroy();
+  });
+
+  it("keeps stacked inline comment cards within the viewport bottom when possible", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 200,
+    });
+    const target = document.querySelector("[data-hrk-id='hero']");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      value: () =>
+        ({
+          bottom: 230,
+          height: 40,
+          left: 20,
+          right: 180,
+          top: 190,
+          width: 160,
+          x: 20,
+          y: 190,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+    const measuredHeight = 72;
+    const offsetHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+      .mockReturnValue(measuredHeight);
+
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    review.addComment({
+      body: "Keep this visible near the bottom.",
+      target: { anchorId: "hero" },
+    });
+    review.addComment({
+      body: "Keep this visible too.",
+      target: { anchorId: "hero" },
+    });
+
+    const inlineComments = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-hrk-inline-comment]"),
+    );
+    const viewportBottom = 200 - 12;
+
+    expect(inlineComments).toHaveLength(2);
+    inlineComments.forEach((inlineComment) => {
+      const top = Number.parseFloat(inlineComment.style.top);
+      const translateY =
+        /translateY\(([-\d.]+)px\)/.exec(inlineComment.style.transform)?.[1] ??
+        "0";
+      const visualBottom = top + Number.parseFloat(translateY) + measuredHeight;
+
+      expect(visualBottom).toBeLessThanOrEqual(viewportBottom);
+    });
+
+    offsetHeightSpy.mockRestore();
+    review.destroy();
+  });
+
+  it("clamps comment markers to visible viewport coordinates", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 320,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 200,
+    });
+    const target = document.querySelector("[data-hrk-id='hero']");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      value: () =>
+        ({
+          bottom: -10,
+          height: 30,
+          left: 480,
+          right: 520,
+          top: -40,
+          width: 40,
+          x: 480,
+          y: -40,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    review.addComment({
+      body: "Visible marker.",
+      target: { anchorId: "hero" },
+    });
+
+    const marker = document.querySelector<HTMLElement>(
+      "[data-hrk-comment-marker]",
+    );
+
+    expect(marker?.style.left).toBe("294px");
+    expect(marker?.style.top).toBe("6px");
+
+    review.destroy();
+  });
+
+  it("clears timeout render fallback on destroy", () => {
+    vi.useFakeTimers();
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    window.dispatchEvent(new Event("resize"));
+
+    expect(setTimeoutSpy).toHaveBeenCalled();
+
+    review.destroy();
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: originalRequestAnimationFrame,
+    });
+    setTimeoutSpy.mockRestore();
+    clearTimeoutSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
   it("enables review mode from the toolbar", () => {
     document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
     const review = createReviewLayer({
