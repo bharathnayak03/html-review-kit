@@ -203,6 +203,53 @@ describe("createReviewLayer", () => {
     review.destroy();
   });
 
+  it("clamps inline comment cards above the viewport bottom", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 200,
+    });
+    const target = document.querySelector("[data-hrk-id='hero']");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      value: () =>
+        ({
+          bottom: 230,
+          height: 40,
+          left: 20,
+          right: 180,
+          top: 190,
+          width: 160,
+          x: 20,
+          y: 190,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+    const measuredHeight = 72;
+    const offsetHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+      .mockReturnValue(measuredHeight);
+
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    review.addComment({
+      body: "Keep this visible near the bottom.",
+      target: { anchorId: "hero" },
+    });
+
+    const inlineComment = document.querySelector<HTMLElement>(
+      "[data-hrk-inline-comment]",
+    );
+
+    expect(inlineComment?.style.top).toBe(`${200 - 12 - measuredHeight}px`);
+
+    offsetHeightSpy.mockRestore();
+    review.destroy();
+  });
+
   it("clamps comment markers to visible viewport coordinates", () => {
     document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
     Object.defineProperty(window, "innerWidth", {

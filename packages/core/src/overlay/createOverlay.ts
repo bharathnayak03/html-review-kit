@@ -123,6 +123,27 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function measureInlineCommentHeight(card: HTMLElement): number {
+  const measuredHeight =
+    card.offsetHeight || card.scrollHeight || card.getBoundingClientRect().height;
+  if (measuredHeight > 0) return measuredHeight;
+
+  if (!card.isConnected) return 80;
+
+  const previousDisplay = card.style.display;
+  const previousVisibility = card.style.visibility;
+  card.style.display = "block";
+  card.style.visibility = "hidden";
+
+  const visibleHeight =
+    card.offsetHeight || card.scrollHeight || card.getBoundingClientRect().height;
+
+  card.style.display = previousDisplay;
+  card.style.visibility = previousVisibility;
+
+  return visibleHeight || 80;
+}
+
 export function createOverlay(
   doc: Document,
   options: CreateOverlayOptions,
@@ -324,11 +345,12 @@ export function createOverlay(
     const fitsRight = rightSideLeft + width <= viewportRight;
     const preferredLeft = fitsRight ? rightSideLeft : leftSideLeft;
     const left = clamp(preferredLeft, viewportLeft, viewportRight - width);
-    const top = clamp(rect.top + scrollY, viewportTop, viewportBottom);
+    card.style.width = `${width}px`;
+    const height = measureInlineCommentHeight(card);
+    const top = clamp(rect.top + scrollY, viewportTop, viewportBottom - height);
 
     card.style.left = `${left}px`;
     card.style.top = `${top}px`;
-    card.style.width = `${width}px`;
   }
 
   function positionMarker(
@@ -432,12 +454,12 @@ export function createOverlay(
           const previousCount = targetCounts.get(target) ?? 0;
           const marker = createCommentMarker(comment, index);
           positionMarker(marker, target, previousCount * 12);
-          positionInlineComment(card, target);
           card.style.transform = `translateY(${previousCount * 12}px)`;
           targetCounts.set(target, previousCount + 1);
-          bindHoverVisibility(target, marker, card);
           overlay.append(marker);
           overlay.append(card);
+          positionInlineComment(card, target);
+          bindHoverVisibility(target, marker, card);
         } else {
           overlay.append(card);
         }
