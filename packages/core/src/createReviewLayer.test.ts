@@ -159,6 +159,123 @@ describe("createReviewLayer", () => {
     review.destroy();
   });
 
+  it("opens an inline composer instead of calling prompt when a target is clicked", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    const prompt = vi.spyOn(window, "prompt").mockReturnValue("Ignored prompt");
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    document
+      .querySelector("[data-hrk-id='hero']")
+      ?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+
+    expect(prompt).not.toHaveBeenCalled();
+    expect(document.querySelector("[data-hrk-comment-composer]")).toBeTruthy();
+    expect(review.getComments()).toEqual([]);
+
+    prompt.mockRestore();
+    review.destroy();
+  });
+
+  it("saves a multiline composer comment with an optional AI instruction", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    const onCommentCreate = vi.fn();
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+      onCommentCreate,
+    });
+
+    document
+      .querySelector("[data-hrk-id='hero']")
+      ?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+
+    const body = document.querySelector<HTMLTextAreaElement>(
+      "[data-hrk-comment-body]",
+    );
+    const aiInstruction = document.querySelector<HTMLTextAreaElement>(
+      "[data-hrk-ai-instruction]",
+    );
+    body!.value = "Line one\nLine two";
+    aiInstruction!.value = "Keep this concise";
+
+    document
+      .querySelector<HTMLButtonElement>("[data-hrk-save-comment]")
+      ?.click();
+
+    expect(onCommentCreate).toHaveBeenCalledOnce();
+    expect(review.getComments()).toMatchObject([
+      {
+        body: "Line one\nLine two",
+        aiInstruction: "Keep this concise",
+        target: { anchorId: "hero" },
+      },
+    ]);
+    expect(document.querySelector("[data-hrk-comment-composer]")).toBeNull();
+    expect(document.querySelector("[data-hrk-comment-marker]")).toBeTruthy();
+
+    review.destroy();
+  });
+
+  it("cancels the inline composer without creating a comment", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    const onCommentCreate = vi.fn();
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+      onCommentCreate,
+    });
+
+    document
+      .querySelector("[data-hrk-id='hero']")
+      ?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+    document
+      .querySelector<HTMLTextAreaElement>("[data-hrk-comment-body]")!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(onCommentCreate).not.toHaveBeenCalled();
+    expect(review.getComments()).toEqual([]);
+    expect(document.querySelector("[data-hrk-comment-composer]")).toBeNull();
+
+    review.destroy();
+  });
+
+  it("does not create a comment when saving an empty composer body", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    const onCommentCreate = vi.fn();
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+      onCommentCreate,
+    });
+
+    document
+      .querySelector("[data-hrk-id='hero']")
+      ?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+    document
+      .querySelector<HTMLButtonElement>("[data-hrk-save-comment]")
+      ?.click();
+
+    expect(onCommentCreate).not.toHaveBeenCalled();
+    expect(review.getComments()).toEqual([]);
+
+    review.destroy();
+  });
+
   it("enables review mode from the toolbar", () => {
     document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
     const review = createReviewLayer({

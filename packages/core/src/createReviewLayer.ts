@@ -87,12 +87,15 @@ export function createReviewLayer(
     if (!(target instanceof Element) || target.closest("[data-hrk-overlay]"))
       return;
 
-    const body = doc.defaultView?.prompt?.("Comment on this element");
-    if (!body) return;
-
     event.preventDefault();
     event.stopPropagation();
-    store.addComment({ body, target: createTargetFromElement(target) });
+    overlay.openCommentComposer(target, ({ body, aiInstruction }) => {
+      store.addComment({
+        body,
+        aiInstruction,
+        target: createTargetFromElement(target),
+      });
+    });
   }
 
   function handleKeydown(event: KeyboardEvent) {

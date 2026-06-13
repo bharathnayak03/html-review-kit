@@ -10,6 +10,11 @@ export interface OverlayController {
   element: HTMLElement;
   render(comments: ArtifactComment[]): void;
   setMode(mode: ReviewMode): void;
+  openCommentComposer(
+    target: Element,
+    onSave: (input: { body: string; aiInstruction?: string }) => void,
+  ): void;
+  dismissCommentComposer(): void;
   destroy(): void;
 }
 
@@ -95,7 +100,7 @@ function buildAnnotationPrompt(
     `Artifact: ${artifact.title ?? artifact.artifactId}`,
     `Source file: ${source}`,
     "",
-    "Process only annotations with motivation \"commenting\". Use target.htmlReviewKitTarget first, then FragmentSelector/data-hrk-id, TextQuoteSelector, CssSelector, XPathSelector, and nearby HTML context. Preserve semantic HTML and stable data-hrk-id anchors. Summarize which annotations were applied and which could not be resolved.",
+    'Process only annotations with motivation "commenting". Use target.htmlReviewKitTarget first, then FragmentSelector/data-hrk-id, TextQuoteSelector, CssSelector, XPathSelector, and nearby HTML context. Preserve semantic HTML and stable data-hrk-id anchors. Summarize which annotations were applied and which could not be resolved.',
     "",
     "HTML annotations:",
     JSON.stringify(annotationCollection, null, 2),
@@ -123,6 +128,7 @@ export function createOverlay(
   options: CreateOverlayOptions,
 ): OverlayController {
   const cleanupHoverHandlers: Array<() => void> = [];
+  let activeComposer: HTMLElement | undefined;
   const overlay = doc.createElement("div");
   overlay.setAttribute("data-hrk-overlay", "");
   overlay.style.cssText =
@@ -208,6 +214,11 @@ export function createOverlay(
     overlay
       .querySelectorAll("[data-hrk-inline-comment],[data-hrk-comment-marker]")
       .forEach((element) => element.remove());
+  }
+
+  function dismissCommentComposer() {
+    activeComposer?.remove();
+    activeComposer = undefined;
   }
 
   function bindHoverVisibility(
@@ -351,6 +362,146 @@ export function createOverlay(
     return card;
   }
 
+  function createComposerField(
+    labelText: string,
+    fieldAttribute: string,
+    placeholder: string,
+    minHeight: number,
+  ) {
+    const label = doc.createElement("label");
+    label.style.cssText =
+      "display:grid;gap:4px;color:#374151;font:600 12px system-ui,sans-serif";
+
+    const labelContent = doc.createElement("span");
+    labelContent.textContent = labelText;
+
+    const textarea = doc.createElement("textarea");
+    textarea.setAttribute(fieldAttribute, "");
+    textarea.placeholder = placeholder;
+    textarea.style.cssText = [
+      "box-sizing:border-box",
+      "width:100%",
+      `min-height:${minHeight}px`,
+      "resize:vertical",
+      "border:1px solid #d1d5db",
+      "border-radius:6px",
+      "padding:8px",
+      "color:#111827",
+      "background:white",
+      "font:13px system-ui,sans-serif",
+      "line-height:1.4",
+    ].join(";");
+
+    label.append(labelContent, textarea);
+    return { label, textarea };
+  }
+
+  function openCommentComposer(
+    target: Element,
+    onSave: (input: { body: string; aiInstruction?: string }) => void,
+  ) {
+    dismissCommentComposer();
+
+    const composer = doc.createElement("form");
+    activeComposer = composer;
+    composer.setAttribute("data-hrk-comment-composer", "");
+    composer.setAttribute("aria-label", "Add comment");
+    composer.style.cssText = [
+      "position:absolute",
+      "display:grid",
+      "gap:8px",
+      "border:1px solid #bfdbfe",
+      "border-left:4px solid #2563eb",
+      "border-radius:8px",
+      "padding:10px",
+      "color:#111827",
+      "background:white",
+      "box-shadow:0 12px 28px rgba(15,23,42,.18)",
+      "pointer-events:auto",
+    ].join(";");
+    positionInlineComment(composer, target);
+
+    const { label: bodyLabel, textarea: body } = createComposerField(
+      "Comment",
+      "data-hrk-comment-body",
+      "Write a comment...",
+      76,
+    );
+    const { label: instructionLabel, textarea: aiInstruction } =
+      createComposerField(
+        "AI instruction (optional)",
+        "data-hrk-ai-instruction",
+        "Optional implementation guidance...",
+        54,
+      );
+
+    const controls = doc.createElement("div");
+    controls.style.cssText = "display:flex;justify-content:flex-end;gap:8px";
+
+    const cancel = doc.createElement("button");
+    cancel.type = "button";
+    cancel.setAttribute("data-hrk-cancel-comment", "");
+    cancel.textContent = "Cancel";
+    cancel.style.cssText = [
+      "border:1px solid #d1d5db",
+      "border-radius:6px",
+      "padding:6px 10px",
+      "color:#374151",
+      "background:white",
+      "font:600 13px system-ui,sans-serif",
+      "cursor:pointer",
+    ].join(";");
+
+    const save = doc.createElement("button");
+    save.type = "submit";
+    save.setAttribute("data-hrk-save-comment", "");
+    save.textContent = "Save";
+    save.style.cssText = [
+      "border:1px solid #2563eb",
+      "border-radius:6px",
+      "padding:6px 10px",
+      "color:white",
+      "background:#2563eb",
+      "font:600 13px system-ui,sans-serif",
+      "cursor:pointer",
+    ].join(";");
+
+    const cancelComposer = (event?: Event) => {
+      event?.preventDefault();
+      event?.stopPropagation();
+      dismissCommentComposer();
+    };
+
+    const cancelOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      cancelComposer(event);
+    };
+
+    composer.addEventListener("submit", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const bodyValue = body.value.trim();
+      if (!bodyValue) return;
+
+      const instructionValue = aiInstruction.value.trim();
+      dismissCommentComposer();
+      onSave({
+        body: bodyValue,
+        ...(instructionValue ? { aiInstruction: instructionValue } : {}),
+      });
+    });
+    composer.addEventListener("keydown", cancelOnEscape);
+    body.addEventListener("keydown", cancelOnEscape);
+    aiInstruction.addEventListener("keydown", cancelOnEscape);
+    cancel.addEventListener("click", cancelComposer);
+
+    controls.append(cancel, save);
+    composer.append(bodyLabel, instructionLabel, controls);
+    overlay.append(composer);
+    body.focus();
+  }
+
   return {
     element: overlay,
     render(comments) {
@@ -378,8 +529,12 @@ export function createOverlay(
     },
     setMode(mode) {
       updateModeButton(mode);
+      if (mode !== "comment") dismissCommentComposer();
     },
+    openCommentComposer,
+    dismissCommentComposer,
     destroy() {
+      dismissCommentComposer();
       clearInlineComments();
       overlay.remove();
     },
