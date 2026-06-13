@@ -50,22 +50,41 @@ export function createReviewLayer(
       rootElement.dataset.hrkMode = mode;
       overlay.setMode(mode);
       if (mode !== "comment") clearHoverTarget();
+      if (mode !== "inspect") clearInspectTarget();
     }
   }
 
   let hoverTarget: Element | undefined;
+  let inspectTarget: Element | undefined;
 
   function clearHoverTarget() {
     hoverTarget?.removeAttribute("data-hrk-hover-target");
     hoverTarget = undefined;
   }
 
+  function clearInspectTarget() {
+    inspectTarget?.removeAttribute("data-hrk-inspect-target");
+    inspectTarget = undefined;
+    overlay.clearInspect();
+  }
+
   function handleMouseover(event: MouseEvent) {
-    if (!enabled || mode !== "comment" || options.readonly) return;
+    if (!enabled || mode === "off") return;
     const target = event.target;
     if (!(target instanceof Element) || target.closest("[data-hrk-overlay]"))
       return;
-    if (target === hoverTarget) return;
+
+    if (mode === "inspect") {
+      if (target === inspectTarget) return;
+
+      clearInspectTarget();
+      inspectTarget = target;
+      inspectTarget.setAttribute("data-hrk-inspect-target", "true");
+      overlay.inspect(target, createTargetFromElement(target));
+      return;
+    }
+
+    if (options.readonly || target === hoverTarget) return;
 
     clearHoverTarget();
     hoverTarget = target;
@@ -73,12 +92,14 @@ export function createReviewLayer(
   }
 
   function handleMouseout(event: MouseEvent) {
-    if (!hoverTarget) return;
+    const activeTarget = mode === "inspect" ? inspectTarget : hoverTarget;
+    if (!activeTarget) return;
     const relatedTarget = event.relatedTarget;
-    if (relatedTarget instanceof Node && hoverTarget.contains(relatedTarget))
+    if (relatedTarget instanceof Node && activeTarget.contains(relatedTarget))
       return;
 
     clearHoverTarget();
+    clearInspectTarget();
   }
 
   function handleClick(event: MouseEvent) {
@@ -124,6 +145,7 @@ export function createReviewLayer(
     enabled = false;
     overlay.destroy();
     clearHoverTarget();
+    clearInspectTarget();
     delete rootElement.dataset.hrkMode;
     rootElement.removeEventListener("click", handleClick, true);
     rootElement.removeEventListener("mouseover", handleMouseover, true);

@@ -3,6 +3,7 @@ import type {
   ArtifactComment,
   ArtifactInfo,
   ArtifactReviewPacket,
+  ArtifactTarget,
   ReviewMode,
 } from "../types";
 
@@ -10,6 +11,8 @@ export interface OverlayController {
   element: HTMLElement;
   render(comments: ArtifactComment[]): void;
   setMode(mode: ReviewMode): void;
+  inspect(target: Element, data: ArtifactTarget): void;
+  clearInspect(): void;
   destroy(): void;
 }
 
@@ -150,9 +153,12 @@ export function createOverlay(
   count.setAttribute("data-hrk-comment-count", "");
   count.style.cssText = "color:#374151";
 
-  const modeButton = doc.createElement("button");
-  modeButton.type = "button";
-  modeButton.setAttribute("data-hrk-toggle-review-mode", "");
+  const modeControls = doc.createElement("div");
+  modeControls.setAttribute("data-hrk-mode-controls", "");
+  modeControls.style.cssText =
+    "display:flex;align-items:center;gap:4px;border:1px solid #d1d5db;border-radius:6px;padding:2px";
+
+  const modeButtons = new Map<ReviewMode, HTMLButtonElement>();
 
   const copyButton = doc.createElement("button");
   copyButton.type = "button";
@@ -169,17 +175,56 @@ export function createOverlay(
     "cursor:pointer",
     "pointer-events:auto",
   ].join(";");
-  modeButton.style.cssText = buttonStyle;
   copyButton.style.cssText = buttonStyle;
 
-  function updateModeButton(mode = options.getMode()) {
-    modeButton.textContent =
-      mode === "comment" ? "Disable review mode" : "Enable review mode";
+  const inactiveModeButtonStyle = [
+    "border:0",
+    "border-radius:4px",
+    "padding:5px 8px",
+    "color:#374151",
+    "background:white",
+    "font:600 13px system-ui,sans-serif",
+    "cursor:pointer",
+    "pointer-events:auto",
+  ].join(";");
+  const activeModeButtonStyle = [
+    "border:0",
+    "border-radius:4px",
+    "padding:5px 8px",
+    "color:white",
+    "background:#2563eb",
+    "font:600 13px system-ui,sans-serif",
+    "cursor:pointer",
+    "pointer-events:auto",
+  ].join(";");
+
+  function createModeButton(mode: ReviewMode, label: string) {
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.setAttribute("data-hrk-mode-button", mode);
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      options.setMode(mode);
+    });
+    modeButtons.set(mode, button);
+    return button;
   }
 
-  modeButton.addEventListener("click", () => {
-    options.setMode(options.getMode() === "comment" ? "off" : "comment");
-  });
+  modeControls.append(
+    createModeButton("off", "Off"),
+    createModeButton("comment", "Comment"),
+    createModeButton("inspect", "Inspect"),
+  );
+
+  function updateModeButtons(mode = options.getMode()) {
+    modeButtons.forEach((button, buttonMode) => {
+      const isActive = buttonMode === mode;
+      button.setAttribute("aria-pressed", String(isActive));
+      button.style.cssText = isActive
+        ? activeModeButtonStyle
+        : inactiveModeButtonStyle;
+    });
+  }
 
   copyButton.addEventListener("click", async () => {
     const prompt = buildAnnotationPrompt(
@@ -189,8 +234,8 @@ export function createOverlay(
     await copyText(doc, prompt);
   });
 
-  updateModeButton();
-  toolbar.append(count, modeButton, copyButton);
+  updateModeButtons();
+  toolbar.append(count, modeControls, copyButton);
   overlay.append(toolbar);
 
   const style = doc.createElement("style");
@@ -200,14 +245,82 @@ export function createOverlay(
       outline-offset: 3px !important;
       cursor: crosshair !important;
     }
+    [data-hrk-mode="inspect"] [data-hrk-inspect-target="true"] {
+      outline: 2px solid #16a34a !important;
+      outline-offset: 3px !important;
+      cursor: help !important;
+    }
   `;
   overlay.append(style);
+
+  let inspectPanel: HTMLElement | undefined;
 
   function clearInlineComments() {
     cleanupHoverHandlers.splice(0).forEach((cleanup) => cleanup());
     overlay
       .querySelectorAll("[data-hrk-inline-comment],[data-hrk-comment-marker]")
       .forEach((element) => element.remove());
+  }
+
+  function clearInspectPanel() {
+    inspectPanel?.remove();
+    inspectPanel = undefined;
+  }
+
+  function appendInspectRow(panel: HTMLElement, label: string, value?: string) {
+    if (!value) return;
+
+    const row = doc.createElement("p");
+    row.style.cssText = "margin:0 0 4px";
+
+    const labelElement = doc.createElement("strong");
+    labelElement.textContent = `${label}: `;
+    labelElement.style.cssText = "color:#166534";
+
+    const valueElement = doc.createElement("code");
+    valueElement.textContent = value;
+    valueElement.style.cssText =
+      "font:12px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;word-break:break-word";
+
+    row.append(labelElement, valueElement);
+    panel.append(row);
+  }
+
+  function createInspectPanel(data: ArtifactTarget): HTMLElement {
+    const panel = doc.createElement("aside");
+    panel.setAttribute("data-hrk-inspect-panel", "");
+    panel.setAttribute("aria-label", "Inspect target");
+    panel.style.cssText = [
+      "position:absolute",
+      "max-width:360px",
+      "border:1px solid #bbf7d0",
+      "border-left:4px solid #16a34a",
+      "border-radius:8px",
+      "padding:10px 12px",
+      "color:#052e16",
+      "background:#f0fdf4",
+      "font:13px system-ui,sans-serif",
+      "box-shadow:0 8px 22px rgba(15,23,42,.14)",
+      "pointer-events:none",
+    ].join(";");
+
+    appendInspectRow(panel, "data-hrk-id", data.anchorId);
+    appendInspectRow(panel, "CSS", data.cssSelector);
+    appendInspectRow(panel, "XPath", data.xpath);
+    appendInspectRow(panel, "Text", data.textQuote);
+
+    return panel;
+  }
+
+  function positionInspectPanel(panel: HTMLElement, target: Element) {
+    const rect = target.getBoundingClientRect();
+    const scrollX = doc.defaultView?.scrollX ?? 0;
+    const scrollY = doc.defaultView?.scrollY ?? 0;
+    const left = Math.max(12, rect.right + scrollX + 8);
+    const top = Math.max(12, rect.top + scrollY);
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
   }
 
   function bindHoverVisibility(
@@ -377,10 +490,21 @@ export function createOverlay(
       });
     },
     setMode(mode) {
-      updateModeButton(mode);
+      updateModeButtons(mode);
+      if (mode !== "inspect") clearInspectPanel();
+    },
+    inspect(target, data) {
+      clearInspectPanel();
+      inspectPanel = createInspectPanel(data);
+      positionInspectPanel(inspectPanel, target);
+      overlay.append(inspectPanel);
+    },
+    clearInspect() {
+      clearInspectPanel();
     },
     destroy() {
       clearInlineComments();
+      clearInspectPanel();
       overlay.remove();
     },
   };
