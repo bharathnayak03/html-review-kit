@@ -31,6 +31,7 @@ export function createReviewLayer(
     onCommentCreate: options.onCommentCreate,
     onCommentUpdate: options.onCommentUpdate,
     onCommentDelete: options.onCommentDelete,
+    onStorageError: options.onStorageError,
     onCommentsChange(comments) {
       overlay.render(comments);
       options.onCommentsChange?.(comments);

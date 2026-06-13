@@ -46,7 +46,7 @@ Initialize it with plain JavaScript:
 </script>
 ```
 
-To persist comments, pass a `CommentStorageAdapter` such as `memoryStorageAdapter` or `localStorageAdapter`. Loading is async, so call `loadComments()` after creating the layer; comment create/update/delete/import operations save back to the adapter automatically, and `saveComments()` is available for an explicit flush.
+To persist comments, pass a `CommentStorageAdapter` such as `memoryStorageAdapter` or `localStorageAdapter`. Loading is async, so call `loadComments()` after creating the layer; comment create/update/delete/import operations save back to the adapter automatically, and `saveComments()` is available for an explicit flush. Automatic save failures are reported through `onStorageError`; explicit `saveComments()` failures reject to the caller.
 
 ```html
 <script>
@@ -61,6 +61,9 @@ To persist comments, pass a `CommentStorageAdapter` such as `memoryStorageAdapte
       storage: HTMLReviewKitCore.localStorageAdapter(
         "html-review-kit:artifact-root",
       ),
+      onStorageError(error) {
+        console.error("Unable to save review comments", error);
+      },
     });
 
     await review.loadComments();

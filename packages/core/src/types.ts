@@ -81,6 +81,7 @@ export interface CreateReviewLayerOptions {
   onCommentUpdate?: (comment: ArtifactComment) => void;
   onCommentDelete?: (commentId: string) => void;
   onCommentsChange?: (comments: ArtifactComment[]) => void;
+  onStorageError?: (error: unknown) => void;
 }
 
 export interface ReviewLayerInstance {

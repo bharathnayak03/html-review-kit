@@ -15,6 +15,7 @@ export interface CreateCommentStoreOptions {
   onCommentUpdate?: (comment: ArtifactComment) => void;
   onCommentDelete?: (commentId: string) => void;
   onCommentsChange?: (comments: ArtifactComment[]) => void;
+  onStorageError?: (error: unknown) => void;
 }
 
 export interface CommentStore {
@@ -49,15 +50,26 @@ function cloneComments(comments: ArtifactComment[]): ArtifactComment[] {
 
 export function createCommentStore(options: CreateCommentStoreOptions): CommentStore {
   let comments = cloneComments(options.comments ?? []);
+  let pendingSave: Promise<void> | undefined;
 
-  const saveComments = async () => {
-    if (!options.storage) return;
-    await options.storage.save(cloneComments(comments));
+  const enqueueSave = (snapshot: ArtifactComment[]): Promise<void> => {
+    if (!options.storage) return Promise.resolve();
+
+    const runSave = () => options.storage?.save(snapshot) ?? Promise.resolve();
+    const save = pendingSave ? pendingSave.then(runSave) : runSave();
+    pendingSave = save.catch(() => undefined);
+    return save;
+  };
+
+  const saveComments = () => {
+    return enqueueSave(cloneComments(comments));
   };
 
   const emitChange = () => {
     options.onCommentsChange?.(cloneComments(comments));
-    void saveComments().catch(() => undefined);
+    void enqueueSave(cloneComments(comments)).catch((error: unknown) => {
+      options.onStorageError?.(error);
+    });
   };
 
   return {
