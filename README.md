@@ -1,6 +1,7 @@
 # HTML Review Kit
 
 ### Review static HTML artifacts without turning feedback into screenshots.
+https://github.com/user-attachments/assets/c7032a2c-385e-4438-bbbe-0cfff71965cf
 
 HTML Review Kit adds a tiny browser review layer to static HTML artifacts. It lets a reviewer click rendered elements, leave comments, and copy an agent-ready prompt that includes stable selectors, text anchors, and source-file context.
 
