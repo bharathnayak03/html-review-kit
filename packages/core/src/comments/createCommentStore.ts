@@ -87,8 +87,9 @@ export function createCommentStore(options: CreateCommentStoreOptions): CommentS
       if (!options.storage) return cloneComments(comments);
       const pendingSaveBeforeLoad = pendingSave;
       comments = cloneComments(await options.storage.load());
+      const pendingSaveAfterLoad = pendingSave;
       options.onCommentsChange?.(cloneComments(comments));
-      if (pendingSaveBeforeLoad) {
+      if (pendingSaveBeforeLoad || pendingSaveAfterLoad) {
         void enqueueSave(cloneComments(comments)).catch((error: unknown) => {
           options.onStorageError?.(error);
         });

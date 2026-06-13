@@ -284,6 +284,60 @@ describe("createCommentStore", () => {
     expect(store.getComments()).toEqual([remoteComment]);
   });
 
+  it("keeps an automatic save queued during load from overwriting loaded comments", async () => {
+    let persistedComments: ArtifactComment[] = [];
+    let resolveLoad: ((comments: ArtifactComment[]) => void) | undefined;
+    const releaseSave: Array<() => void> = [];
+    const remoteComment: ArtifactComment = {
+      id: "cmt_remote",
+      artifactId: "demo",
+      status: "open",
+      body: "Remote comment.",
+      target: { anchorId: "hero" },
+      createdAt: "2026-06-01T10:00:00.000Z",
+    };
+    const storage = {
+      load: vi.fn(
+        () =>
+          new Promise<ArtifactComment[]>((resolve) => {
+            resolveLoad = resolve;
+          }),
+      ),
+      save: vi.fn(
+        (comments: ArtifactComment[]) =>
+          new Promise<void>((resolve) => {
+            releaseSave.push(() => {
+              persistedComments = structuredClone(comments);
+              resolve();
+            });
+          }),
+      ),
+    };
+    const store = createCommentStore({
+      artifact: { artifactId: "demo" },
+      storage,
+    });
+
+    const loaded = store.loadComments();
+    const localComment = store.addComment({
+      body: "Local comment.",
+      target: { anchorId: "hero" },
+    });
+    await waitForSaveCount(storage, 1);
+
+    if (!resolveLoad) throw new Error("Expected storage.load to be pending.");
+    resolveLoad([remoteComment]);
+    await expect(loaded).resolves.toEqual([remoteComment]);
+    releaseSave.shift()?.();
+    await waitForSaveCount(storage, 2);
+    releaseSave.shift()?.();
+    await Promise.resolve();
+
+    expect(persistedComments).toEqual([remoteComment]);
+    expect(persistedComments).not.toEqual([localComment]);
+    expect(store.getComments()).toEqual([remoteComment]);
+  });
+
   it("reports automatic save failures but rejects explicit save failures", async () => {
     const automaticError = new Error("automatic save failed");
     const explicitError = new Error("explicit save failed");
