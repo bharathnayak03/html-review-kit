@@ -18,7 +18,6 @@
       "default": "./dist/index.global.js"
     },
     "./global": {
-      "types": "./dist/index.d.ts",
       "default": "./dist/index.global.js"
     },
     "./html-review-kit-core.amd.js": "./dist/html-review-kit-core.amd.js",

@@ -22,7 +22,6 @@ type PackageJson = {
       default?: string;
     };
     "./global"?: {
-      types?: string;
       default?: string;
     };
     "./html-review-kit-core.amd.js"?: string;
@@ -52,9 +51,9 @@ describe("package metadata", () => {
       default: "./dist/index.global.js",
     });
     expect(packageJson.exports?.["./global"]).toEqual({
-      types: "./dist/index.d.ts",
       default: "./dist/index.global.js",
     });
+    expect(packageJson.exports?.["./global"]).not.toHaveProperty("types");
     expect(packageJson.exports?.["./html-review-kit-core.amd.js"]).toBe(
       "./dist/html-review-kit-core.amd.js",
     );
