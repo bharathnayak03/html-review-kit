@@ -12,6 +12,44 @@ function query(root: Document | Element, selector: string): Element | null {
   }
 }
 
+function escapeAttributeValue(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\A ")
+    .replace(/\r/g, "\\D ")
+    .replace(/\f/g, "\\C ");
+}
+
+function escapeIdentifier(value: string): string {
+  if (globalThis.CSS?.escape) return globalThis.CSS.escape(value);
+
+  const chars = Array.from(value);
+  return chars
+    .map((char, index) => {
+      const codePoint = char.codePointAt(0);
+      if (codePoint === undefined) return "";
+      if (codePoint === 0) return "\uFFFD";
+
+      const isDigit = codePoint >= 0x30 && codePoint <= 0x39;
+      const isLetter =
+        (codePoint >= 0x41 && codePoint <= 0x5a) || (codePoint >= 0x61 && codePoint <= 0x7a);
+      const isSafe = isLetter || isDigit || char === "_" || char === "-" || codePoint >= 0x80;
+      const next = chars[index + 1];
+
+      if (index === 0 && isDigit) return `\\${codePoint.toString(16)} `;
+      if (index === 0 && char === "-" && value.length === 1) return "\\-";
+      if (index === 0 && char === "-" && next && /\d/.test(next)) return "\\-";
+
+      return isSafe ? char : `\\${char}`;
+    })
+    .join("");
+}
+
+function hasMatchingElementChild(element: Element, text: string): boolean {
+  return Array.from(element.children).some((child) => child.textContent?.includes(text));
+}
+
 function findByText(root: Document | Element, text: string): Element | null {
   const doc = ownerDocument(root);
   const walker = doc.createTreeWalker(
@@ -22,21 +60,14 @@ function findByText(root: Document | Element, text: string): Element | null {
   let candidate: Element | null = null;
   let current: Node | null = walker.currentNode;
   while (current) {
-    if (current instanceof Element && current.textContent?.includes(text)) {
+    if (
+      current instanceof Element &&
+      current.textContent?.includes(text) &&
+      !hasMatchingElementChild(current, text)
+    ) {
       candidate = current;
     }
     current = walker.nextNode();
-  }
-
-  if (
-    candidate &&
-    !candidate.id &&
-    candidate.classList.length === 0 &&
-    !candidate.getAttribute("data-hrk-id") &&
-    candidate.parentElement &&
-    candidate.parentElement !== doc.body
-  ) {
-    return candidate.parentElement;
   }
 
   return candidate;
@@ -54,7 +85,9 @@ function findByXPath(root: Document | Element, xpath: string): Element | null {
 
 export function resolveTarget(root: Document | Element, target: ArtifactTarget): Element | null {
   if (target.anchorId) {
-    const byAnchor = query(root, `[data-hrk-id="${target.anchorId}"]`) || query(root, `#${target.anchorId}`);
+    const byAnchor =
+      query(root, `[data-hrk-id="${escapeAttributeValue(target.anchorId)}"]`) ||
+      query(root, `#${escapeIdentifier(target.anchorId)}`);
     if (byAnchor) return byAnchor;
   }
 
