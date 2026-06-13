@@ -153,9 +153,12 @@ export function createOverlay(
   count.setAttribute("data-hrk-comment-count", "");
   count.style.cssText = "color:#374151";
 
-  const modeButton = doc.createElement("button");
-  modeButton.type = "button";
-  modeButton.setAttribute("data-hrk-toggle-review-mode", "");
+  const modeControls = doc.createElement("div");
+  modeControls.setAttribute("data-hrk-mode-controls", "");
+  modeControls.style.cssText =
+    "display:flex;align-items:center;gap:4px;border:1px solid #d1d5db;border-radius:6px;padding:2px";
+
+  const modeButtons = new Map<ReviewMode, HTMLButtonElement>();
 
   const copyButton = doc.createElement("button");
   copyButton.type = "button";
@@ -172,17 +175,56 @@ export function createOverlay(
     "cursor:pointer",
     "pointer-events:auto",
   ].join(";");
-  modeButton.style.cssText = buttonStyle;
   copyButton.style.cssText = buttonStyle;
 
-  function updateModeButton(mode = options.getMode()) {
-    modeButton.textContent =
-      mode === "comment" ? "Disable review mode" : "Enable review mode";
+  const inactiveModeButtonStyle = [
+    "border:0",
+    "border-radius:4px",
+    "padding:5px 8px",
+    "color:#374151",
+    "background:white",
+    "font:600 13px system-ui,sans-serif",
+    "cursor:pointer",
+    "pointer-events:auto",
+  ].join(";");
+  const activeModeButtonStyle = [
+    "border:0",
+    "border-radius:4px",
+    "padding:5px 8px",
+    "color:white",
+    "background:#2563eb",
+    "font:600 13px system-ui,sans-serif",
+    "cursor:pointer",
+    "pointer-events:auto",
+  ].join(";");
+
+  function createModeButton(mode: ReviewMode, label: string) {
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.setAttribute("data-hrk-mode-button", mode);
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      options.setMode(mode);
+    });
+    modeButtons.set(mode, button);
+    return button;
   }
 
-  modeButton.addEventListener("click", () => {
-    options.setMode(options.getMode() === "comment" ? "off" : "comment");
-  });
+  modeControls.append(
+    createModeButton("off", "Off"),
+    createModeButton("comment", "Comment"),
+    createModeButton("inspect", "Inspect"),
+  );
+
+  function updateModeButtons(mode = options.getMode()) {
+    modeButtons.forEach((button, buttonMode) => {
+      const isActive = buttonMode === mode;
+      button.setAttribute("aria-pressed", String(isActive));
+      button.style.cssText = isActive
+        ? activeModeButtonStyle
+        : inactiveModeButtonStyle;
+    });
+  }
 
   copyButton.addEventListener("click", async () => {
     const prompt = buildAnnotationPrompt(
@@ -192,8 +234,8 @@ export function createOverlay(
     await copyText(doc, prompt);
   });
 
-  updateModeButton();
-  toolbar.append(count, modeButton, copyButton);
+  updateModeButtons();
+  toolbar.append(count, modeControls, copyButton);
   overlay.append(toolbar);
 
   const style = doc.createElement("style");
@@ -448,7 +490,7 @@ export function createOverlay(
       });
     },
     setMode(mode) {
-      updateModeButton(mode);
+      updateModeButtons(mode);
       if (mode !== "inspect") clearInspectPanel();
     },
     inspect(target, data) {

@@ -210,7 +210,7 @@ describe("createReviewLayer", () => {
     review.destroy();
   });
 
-  it("enables review mode from the toolbar", () => {
+  it("switches modes from the toolbar", () => {
     document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
     const review = createReviewLayer({
       root: document.body,
@@ -220,17 +220,70 @@ describe("createReviewLayer", () => {
 
     review.enable();
 
-    const toggle = document.querySelector<HTMLButtonElement>(
-      "[data-hrk-toggle-review-mode]",
+    const offButton = document.querySelector<HTMLButtonElement>(
+      "[data-hrk-mode-button='off']",
+    );
+    const commentButton = document.querySelector<HTMLButtonElement>(
+      "[data-hrk-mode-button='comment']",
+    );
+    const inspectButton = document.querySelector<HTMLButtonElement>(
+      "[data-hrk-mode-button='inspect']",
     );
 
     expect(document.body.dataset.hrkMode).toBe("off");
-    expect(toggle?.textContent).toBe("Enable review mode");
+    expect(offButton?.textContent).toBe("Off");
+    expect(commentButton?.textContent).toBe("Comment");
+    expect(inspectButton?.textContent).toBe("Inspect");
+    expect(offButton?.getAttribute("aria-pressed")).toBe("true");
 
-    toggle?.click();
+    commentButton?.click();
 
     expect(document.body.dataset.hrkMode).toBe("comment");
-    expect(toggle?.textContent).toBe("Disable review mode");
+    expect(commentButton?.getAttribute("aria-pressed")).toBe("true");
+
+    inspectButton?.click();
+
+    expect(document.body.dataset.hrkMode).toBe("inspect");
+    expect(inspectButton?.getAttribute("aria-pressed")).toBe("true");
+
+    offButton?.click();
+
+    expect(document.body.dataset.hrkMode).toBe("off");
+    expect(offButton?.getAttribute("aria-pressed")).toBe("true");
+
+    review.destroy();
+  });
+
+  it("shows inspect mode truthfully in the toolbar", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "inspect",
+    });
+
+    review.enable();
+
+    const offButton = document.querySelector<HTMLButtonElement>(
+      "[data-hrk-mode-button='off']",
+    );
+    const commentButton = document.querySelector<HTMLButtonElement>(
+      "[data-hrk-mode-button='comment']",
+    );
+    const inspectButton = document.querySelector<HTMLButtonElement>(
+      "[data-hrk-mode-button='inspect']",
+    );
+
+    expect(document.body.dataset.hrkMode).toBe("inspect");
+    expect(offButton?.textContent).toBe("Off");
+    expect(commentButton?.textContent).toBe("Comment");
+    expect(inspectButton?.textContent).toBe("Inspect");
+    expect(inspectButton?.getAttribute("aria-pressed")).toBe("true");
+
+    offButton?.click();
+
+    expect(document.body.dataset.hrkMode).toBe("off");
+    expect(offButton?.getAttribute("aria-pressed")).toBe("true");
 
     review.destroy();
   });
