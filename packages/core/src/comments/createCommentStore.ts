@@ -51,10 +51,12 @@ function cloneComments(comments: ArtifactComment[]): ArtifactComment[] {
 export function createCommentStore(options: CreateCommentStoreOptions): CommentStore {
   let comments = cloneComments(options.comments ?? []);
   let pendingSave: Promise<void> | undefined;
+  let saveCount = 0;
 
   const enqueueSave = (snapshot: ArtifactComment[]): Promise<void> => {
     if (!options.storage) return Promise.resolve();
 
+    saveCount += 1;
     const runSave = () => options.storage?.save(snapshot) ?? Promise.resolve();
     const save = pendingSave ? pendingSave.then(runSave) : runSave();
     const trackedSave = save.catch(() => undefined);
@@ -86,10 +88,16 @@ export function createCommentStore(options: CreateCommentStoreOptions): CommentS
     async loadComments() {
       if (!options.storage) return cloneComments(comments);
       const pendingSaveBeforeLoad = pendingSave;
+      const saveCountBeforeLoad = saveCount;
       comments = cloneComments(await options.storage.load());
       const pendingSaveAfterLoad = pendingSave;
+      const shouldPersistLoadedComments =
+        saveCountBeforeLoad > 0 ||
+        saveCount > saveCountBeforeLoad ||
+        pendingSaveBeforeLoad !== undefined ||
+        pendingSaveAfterLoad !== undefined;
       options.onCommentsChange?.(cloneComments(comments));
-      if (pendingSaveBeforeLoad || pendingSaveAfterLoad) {
+      if (shouldPersistLoadedComments) {
         void enqueueSave(cloneComments(comments)).catch((error: unknown) => {
           options.onStorageError?.(error);
         });
