@@ -1,59 +1,38 @@
 # HTML Review Kit
 
-HTML Review Kit is a tiny static HTML review helper for AI-generated artifacts.
+### Review static HTML artifacts without turning feedback into screenshots.
 
-It keeps the workflow simple:
+HTML Review Kit adds a tiny browser review layer to static HTML artifacts. It lets a reviewer click rendered elements, leave comments, and copy an agent-ready prompt that includes stable selectors, text anchors, and source-file context.
 
-1. Build the AMD browser script.
-2. Load it in a static HTML artifact.
-3. Add a short JavaScript initializer.
-4. Review the rendered HTML.
-5. Copy the prompt with HTML annotations and paste it into an agent.
+Use it when an AI agent, design tool, report generator, or internal workflow produces HTML and you want precise human feedback to round-trip back into source changes.
 
-Only the static HTML AMD-script workflow is included.
+- **Static-first** - Drop one AMD bundle into any HTML file. No app server, framework, or build pipeline required for reviewers.
+- **Agent-ready feedback** - Copy a prompt with comments, artifact metadata, and target selectors that coding agents can apply directly.
+- **Stable anchors** - Prefer `data-hrk-id` anchors, then fall back to text quotes, CSS selectors, XPath, nearby text, and HTML snippets.
+- **Framework-agnostic core** - The `@bharathnayak03/html-review-kit-core` package is plain TypeScript and DOM APIs.
+- **Local and portable** - Load from a pinned CDN version or copy the bundle next to a self-contained artifact.
 
-## Package
+## Quick Start
 
-- `@bharathnayak03/html-review-kit-core`: framework-agnostic DOM review layer that builds browser scripts.
-
-## Build
+Install dependencies and build the browser bundle:
 
 ```bash
 pnpm install
 pnpm --filter @bharathnayak03/html-review-kit-core build
 ```
 
-The core build writes:
-
-```text
-packages/core/dist/index.global.js
-packages/core/dist/index.amd.js
-packages/core/dist/html-review-kit-core.amd.js
-```
-
-Publish the npm package from `packages/core`, not the repository root:
-
-```bash
-cd packages/core
-npm publish --access public
-```
-
-## Static HTML Usage
-
-For a runnable local artifact, see
-[`examples/static-html`](examples/static-html/README.md).
-
-Add stable anchors to the artifact:
+Add stable anchors to the HTML you want reviewed:
 
 ```html
 <main data-hrk-id="artifact-root">
   <section data-hrk-id="hero">
     <h1>Launch plan</h1>
+    <p>Review this artifact in the browser and send precise feedback back to the agent.</p>
   </section>
 </main>
 ```
 
-Load the pinned AMD script from npm CDN and initialize the review layer:
+Load the pinned browser bundle and initialize the review layer:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@bharathnayak03/html-review-kit-core@0.1.0/dist/html-review-kit-core.amd.js"></script>
@@ -61,7 +40,8 @@ Load the pinned AMD script from npm CDN and initialize the review layer:
   const review = HTMLReviewKitCore.createReviewLayer({
     root: document.querySelector("[data-hrk-id='artifact-root']"),
     artifact: {
-      artifactId: "artifact-root",
+      artifactId: "launch-plan",
+      title: "Launch plan",
       sourceType: "html",
       sourceFile: "artifact.html",
     },
@@ -72,24 +52,127 @@ Load the pinned AMD script from npm CDN and initialize the review layer:
 </script>
 ```
 
-For offline or self-contained artifacts, copy the built bundle next to the HTML artifact and load it locally:
+Open the HTML file, use the toolbar to enable review mode, add comments, then click **Copy prompt**. Paste that prompt into your coding agent to apply the requested changes.
+
+## Try the Example
+
+The repo includes a standalone artifact at [`examples/static-html`](examples/static-html/README.md).
+
+```bash
+pnpm --filter @bharathnayak03/html-review-kit-core build
+python3 -m http.server 4173 --directory .
+```
+
+Then visit:
+
+```text
+http://localhost:4173/examples/static-html/
+```
+
+The example loads the local build from:
+
+```html
+<script src="../../packages/core/dist/html-review-kit-core.amd.js"></script>
+```
+
+## How It Works
+
+```text
+Static HTML artifact with data-hrk-id
+  -> HTML Review Kit adds a review toolbar
+  -> Reviewer comments on rendered DOM targets
+  -> Copy prompt exports an AnnotationCollection
+  -> Agent applies edits back to source HTML
+```
+
+The copied prompt includes an `AnnotationCollection` with open comments and target data. Agents should process annotations with `motivation: "commenting"` and locate targets in this order:
+
+1. `target.htmlReviewKitTarget`
+2. `FragmentSelector` with `data-hrk-id`
+3. `TextQuoteSelector`
+4. `CssSelector`
+5. `XPathSelector`
+6. nearby text
+7. HTML snippet
+
+That order keeps the workflow resilient when the rendered DOM shifts between review and patching.
+
+## Package
+
+This repository is a pnpm workspace. The publishable package is:
+
+| Package | Purpose |
+| --- | --- |
+| `@bharathnayak03/html-review-kit-core` | Framework-agnostic DOM review layer and browser bundles |
+
+The core build writes:
+
+```text
+packages/core/dist/index.js
+packages/core/dist/index.d.ts
+packages/core/dist/index.global.js
+packages/core/dist/index.amd.js
+packages/core/dist/html-review-kit-core.amd.js
+```
+
+Publish from `packages/core`, not the repository root:
+
+```bash
+cd packages/core
+npm publish --access public
+```
+
+## Browser Bundle Options
+
+Use a pinned CDN version for hosted or shareable artifacts:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@bharathnayak03/html-review-kit-core@0.1.0/dist/html-review-kit-core.amd.js"></script>
+```
+
+Or copy the built bundle next to the artifact for offline review:
 
 ```html
 <script src="./html-review-kit-core.amd.js"></script>
 ```
 
-Pin the package version so older artifacts keep using the same review script.
+Pin package versions in static artifacts. Avoid `@latest`, because old review packets should keep using the script version they were created against.
 
-## Review Flow
+## API Surface
 
-The toolbar provides:
+The public API is exported from [`packages/core/src/index.ts`](packages/core/src/index.ts):
 
-- `Enable review mode` / `Disable review mode`
-- `Copy prompt`
+- `createReviewLayer`
+- anchor helpers: `createTargetFromElement`, `generateAnchorId`, `generateCssSelector`, `generateXPath`, `resolveTarget`
+- comment helpers: `createCommentStore`, `exportReviewPacket`, `validateReviewPacket`
+- storage adapters: `localStorageAdapter`, `memoryStorageAdapter`
+- TypeScript types for artifacts, comments, review packets, storage, and layer instances
 
-`Copy prompt` copies agent-ready instructions plus the open HTML annotations and target selectors. Paste that prompt into a coding agent to apply the comments to the source HTML.
+Minimal TypeScript usage:
 
-## Skill
+```ts
+import {
+  createReviewLayer,
+  localStorageAdapter,
+} from "@bharathnayak03/html-review-kit-core";
+
+const review = createReviewLayer({
+  root: document.querySelector("[data-hrk-id='artifact-root']")!,
+  artifact: {
+    artifactId: "artifact-root",
+    sourceType: "html",
+    sourceFile: "artifact.html",
+  },
+  storage: localStorageAdapter("html-review-kit:artifact-root"),
+});
+
+await review.loadComments();
+review.enable();
+```
+
+See [`docs/sdk.md`](docs/sdk.md), [`docs/schema.md`](docs/schema.md), and [`docs/ai-workflow.md`](docs/ai-workflow.md) for deeper integration notes.
+
+## Agent Skill
 
 The installable skill lives at:
 
@@ -97,59 +180,46 @@ The installable skill lives at:
 skills/html-review-kit/SKILL.md
 ```
 
-Use it when writing static HTML artifacts or when applying copied HTML Review Kit annotations.
+Use it when writing static HTML artifacts or applying copied HTML Review Kit annotations. The skill tells agents how to preserve semantic HTML, use stable `data-hrk-id` anchors, and resolve copied comments back to source files.
 
-The package intentionally keeps only one `SKILL.md` copy. Install it explicitly for local agent use, or install this repo as a Claude Code or Codex plugin for distribution.
-
-## Publishing the Skill
-
-The canonical skill content is `skills/html-review-kit/SKILL.md`.
-
-For Claude Code:
-
-```bash
-mkdir -p ~/.claude/skills/html-review-kit
-cp skills/html-review-kit/SKILL.md ~/.claude/skills/html-review-kit/SKILL.md
-```
-
-For Claude Code plugin testing:
-
-```bash
-claude --plugin-dir .
-```
-
-The Claude plugin manifest lives at:
-
-```text
-.claude-plugin/plugin.json
-```
-
-When loaded as a Claude plugin, the skill is invoked as:
-
-```text
-/html-review-kit:html-review-kit
-```
-
-For Codex local use:
+For local Codex use:
 
 ```bash
 mkdir -p ~/.agents/skills/html-review-kit
 cp skills/html-review-kit/SKILL.md ~/.agents/skills/html-review-kit/SKILL.md
 ```
 
-For Codex plugin distribution, this repository is also a plugin root. The manifest lives at:
+For Claude Code use:
+
+```bash
+mkdir -p ~/.claude/skills/html-review-kit
+cp skills/html-review-kit/SKILL.md ~/.claude/skills/html-review-kit/SKILL.md
+```
+
+The repository can also be loaded as a plugin source. Manifests live at:
 
 ```text
 .codex-plugin/plugin.json
+.claude-plugin/plugin.json
 ```
-
-External developers can install or share the repo as a Codex plugin source. The plugin exposes the skill from `./skills/`.
 
 ## Development
 
 ```bash
-pnpm build
-pnpm test
-pnpm typecheck
-pnpm lint
+pnpm build       # Build all packages
+pnpm test        # Run tests
+pnpm typecheck   # Run TypeScript checks
+pnpm lint        # Run ESLint
+pnpm format      # Format the workspace
 ```
+
+Useful focused commands:
+
+```bash
+pnpm --filter @bharathnayak03/html-review-kit-core build
+pnpm smoke:static-html
+```
+
+## Project Status
+
+HTML Review Kit currently focuses on one workflow: static HTML artifacts that load the AMD browser script. The core package stays framework-agnostic by design, and public APIs should be exported from each package's `src/index.ts`.
