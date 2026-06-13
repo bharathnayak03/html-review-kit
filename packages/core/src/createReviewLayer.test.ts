@@ -159,6 +159,57 @@ describe("createReviewLayer", () => {
     review.destroy();
   });
 
+  it("shows stable target data while hovering in inspect mode", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1> <p>Lead copy</p></section></main>`;
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "inspect",
+    });
+
+    const target = document.querySelector("[data-hrk-id='hero']");
+    target?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+
+    const panel = document.querySelector("[data-hrk-inspect-panel]");
+
+    expect(document.body.dataset.hrkMode).toBe("inspect");
+    expect(target?.getAttribute("data-hrk-inspect-target")).toBe("true");
+    expect(panel?.textContent).toContain("data-hrk-id: hero");
+    expect(panel?.textContent).toContain('CSS: [data-hrk-id="hero"]');
+    expect(panel?.textContent).toContain("XPath:");
+    expect(panel?.textContent).toContain("Text: Hero Lead copy");
+
+    target?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+
+    expect(target?.hasAttribute("data-hrk-inspect-target")).toBe(false);
+    expect(document.querySelector("[data-hrk-inspect-panel]")).toBeNull();
+
+    review.destroy();
+  });
+
+  it("does not prompt or create comments from inspect mode clicks", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    const prompt = vi.fn().mockReturnValue("New comment");
+    vi.spyOn(window, "prompt").mockImplementation(prompt);
+    const onCommentCreate = vi.fn();
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "inspect",
+      onCommentCreate,
+    });
+
+    document
+      .querySelector("[data-hrk-id='hero']")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(prompt).not.toHaveBeenCalled();
+    expect(onCommentCreate).not.toHaveBeenCalled();
+    expect(review.getComments()).toEqual([]);
+
+    review.destroy();
+  });
+
   it("enables review mode from the toolbar", () => {
     document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
     const review = createReviewLayer({

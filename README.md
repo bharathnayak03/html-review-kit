@@ -86,6 +86,14 @@ The toolbar provides:
 
 `Copy prompt` copies agent-ready instructions plus the open HTML annotations and target selectors. Paste that prompt into a coding agent to apply the comments to the source HTML.
 
+Review modes are:
+
+- `off`: no review interactions.
+- `comment`: hover highlights targets; click prompts for a comment.
+- `inspect`: hover shows stable target data such as `data-hrk-id`, CSS selector, XPath, and nearby text without creating comments.
+
+Keyboard shortcuts are `Escape` for off, `c` for comment, and `v` for inspect.
+
 ## Skill
 
 The installable skill lives at:

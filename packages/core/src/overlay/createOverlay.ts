@@ -3,6 +3,7 @@ import type {
   ArtifactComment,
   ArtifactInfo,
   ArtifactReviewPacket,
+  ArtifactTarget,
   ReviewMode,
 } from "../types";
 
@@ -10,6 +11,8 @@ export interface OverlayController {
   element: HTMLElement;
   render(comments: ArtifactComment[]): void;
   setMode(mode: ReviewMode): void;
+  inspect(target: Element, data: ArtifactTarget): void;
+  clearInspect(): void;
   destroy(): void;
 }
 
@@ -200,14 +203,82 @@ export function createOverlay(
       outline-offset: 3px !important;
       cursor: crosshair !important;
     }
+    [data-hrk-mode="inspect"] [data-hrk-inspect-target="true"] {
+      outline: 2px solid #16a34a !important;
+      outline-offset: 3px !important;
+      cursor: help !important;
+    }
   `;
   overlay.append(style);
+
+  let inspectPanel: HTMLElement | undefined;
 
   function clearInlineComments() {
     cleanupHoverHandlers.splice(0).forEach((cleanup) => cleanup());
     overlay
       .querySelectorAll("[data-hrk-inline-comment],[data-hrk-comment-marker]")
       .forEach((element) => element.remove());
+  }
+
+  function clearInspectPanel() {
+    inspectPanel?.remove();
+    inspectPanel = undefined;
+  }
+
+  function appendInspectRow(panel: HTMLElement, label: string, value?: string) {
+    if (!value) return;
+
+    const row = doc.createElement("p");
+    row.style.cssText = "margin:0 0 4px";
+
+    const labelElement = doc.createElement("strong");
+    labelElement.textContent = `${label}: `;
+    labelElement.style.cssText = "color:#166534";
+
+    const valueElement = doc.createElement("code");
+    valueElement.textContent = value;
+    valueElement.style.cssText =
+      "font:12px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;word-break:break-word";
+
+    row.append(labelElement, valueElement);
+    panel.append(row);
+  }
+
+  function createInspectPanel(data: ArtifactTarget): HTMLElement {
+    const panel = doc.createElement("aside");
+    panel.setAttribute("data-hrk-inspect-panel", "");
+    panel.setAttribute("aria-label", "Inspect target");
+    panel.style.cssText = [
+      "position:absolute",
+      "max-width:360px",
+      "border:1px solid #bbf7d0",
+      "border-left:4px solid #16a34a",
+      "border-radius:8px",
+      "padding:10px 12px",
+      "color:#052e16",
+      "background:#f0fdf4",
+      "font:13px system-ui,sans-serif",
+      "box-shadow:0 8px 22px rgba(15,23,42,.14)",
+      "pointer-events:none",
+    ].join(";");
+
+    appendInspectRow(panel, "data-hrk-id", data.anchorId);
+    appendInspectRow(panel, "CSS", data.cssSelector);
+    appendInspectRow(panel, "XPath", data.xpath);
+    appendInspectRow(panel, "Text", data.textQuote);
+
+    return panel;
+  }
+
+  function positionInspectPanel(panel: HTMLElement, target: Element) {
+    const rect = target.getBoundingClientRect();
+    const scrollX = doc.defaultView?.scrollX ?? 0;
+    const scrollY = doc.defaultView?.scrollY ?? 0;
+    const left = Math.max(12, rect.right + scrollX + 8);
+    const top = Math.max(12, rect.top + scrollY);
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
   }
 
   function bindHoverVisibility(
@@ -378,9 +449,20 @@ export function createOverlay(
     },
     setMode(mode) {
       updateModeButton(mode);
+      if (mode !== "inspect") clearInspectPanel();
+    },
+    inspect(target, data) {
+      clearInspectPanel();
+      inspectPanel = createInspectPanel(data);
+      positionInspectPanel(inspectPanel, target);
+      overlay.append(inspectPanel);
+    },
+    clearInspect() {
+      clearInspectPanel();
     },
     destroy() {
       clearInlineComments();
+      clearInspectPanel();
       overlay.remove();
     },
   };
