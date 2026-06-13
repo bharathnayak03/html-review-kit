@@ -40,6 +40,9 @@ npm publish --access public
 
 ## Static HTML Usage
 
+For a runnable local artifact, see
+[`examples/static-html`](examples/static-html/README.md).
+
 Add stable anchors to the artifact:
 
 ```html

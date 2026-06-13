@@ -8,6 +8,9 @@ pnpm --filter @bharathnayak03/html-review-kit-core build
 
 The build produces `index.global.js`, `index.amd.js`, and `html-review-kit-core.amd.js` in `packages/core/dist`.
 
+See [`../examples/static-html`](../examples/static-html/README.md) for a
+runnable static HTML artifact that loads the built AMD bundle locally.
+
 Load the pinned npm CDN script in the artifact:
 
 ```html

@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HTML Review Kit Static Artifact Example</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #526070;
+        --line: #d8dee8;
+        --paper: #fbfcfe;
+        --panel: #ffffff;
+        --accent: #0f766e;
+        --accent-soft: #dff5f1;
+        --warn: #9a5b13;
+        --warn-soft: #fff2d8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.5;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .shell {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+
+      .artifact-header {
+        display: grid;
+        gap: 18px;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--accent);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin-bottom: 0;
+        font-size: clamp(2rem, 5vw, 4rem);
+        line-height: 1;
+      }
+
+      h2 {
+        margin-bottom: 12px;
+        font-size: 1.45rem;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 1rem;
+      }
+
+      .lede {
+        max-width: 760px;
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 1.08rem;
+      }
+
+      .meta-list {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 0;
+      }
+
+      .meta-list div {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #f7f9fc;
+      }
+
+      .meta-list dt {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .meta-list dd {
+        margin: 4px 0 0;
+        font-weight: 700;
+      }
+
+      .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      section,
+      aside {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .feature-list,
+      .review-list {
+        display: grid;
+        gap: 14px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .feature-list li,
+      .review-list li {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #07534d;
+        font-size: 0.83rem;
+        font-weight: 700;
+      }
+
+      .callout {
+        border-color: #efc876;
+        background: var(--warn-soft);
+      }
+
+      .callout strong {
+        color: var(--warn);
+      }
+
+      footer {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      @media (max-width: 760px) {
+        .artifact-header,
+        section,
+        aside {
+          padding: 18px;
+        }
+
+        .meta-list,
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell" data-hrk-id="artifact-root">
+      <article aria-labelledby="artifact-title" data-hrk-id="example-article">
+        <header class="artifact-header" data-hrk-id="artifact-header">
+          <p class="eyebrow" data-hrk-id="artifact-kicker">
+            Static HTML example
+          </p>
+          <h1 id="artifact-title" data-hrk-id="artifact-title">
+            Review a product launch brief without adding a framework.
+          </h1>
+          <p class="lede" data-hrk-id="artifact-summary">
+            This artifact demonstrates stable HTML Review Kit anchors, semantic
+            document structure, and a local AMD bundle initializer that works
+            after building the core package.
+          </p>
+          <dl class="meta-list" data-hrk-id="launch-meta">
+            <div data-hrk-id="meta-owner">
+              <dt>Owner</dt>
+              <dd>Growth team</dd>
+            </div>
+            <div data-hrk-id="meta-review-window">
+              <dt>Review window</dt>
+              <dd>June 17 to June 21</dd>
+            </div>
+            <div data-hrk-id="meta-source">
+              <dt>Source</dt>
+              <dd>examples/static-html/index.html</dd>
+            </div>
+          </dl>
+        </header>
+
+        <div class="content-grid" data-hrk-id="content-grid">
+          <section aria-labelledby="goals-title" data-hrk-id="launch-goals">
+            <h2 id="goals-title" data-hrk-id="launch-goals-title">
+              Launch goals
+            </h2>
+            <ul class="feature-list" data-hrk-id="launch-goals-list">
+              <li data-hrk-id="goal-positioning">
+                <span class="status">Primary</span>
+                <h3>Clarify positioning</h3>
+                <p>
+                  Explain who the launch helps, what problem it solves, and how
+                  reviewers should evaluate the first draft.
+                </p>
+              </li>
+              <li data-hrk-id="goal-feedback">
+                <span class="status">Review</span>
+                <h3>Collect actionable comments</h3>
+                <p>
+                  Let reviewers pin comments to specific headings, cards,
+                  metrics, and copy blocks by using stable
+                  <code>data-hrk-id</code> anchors.
+                </p>
+              </li>
+              <li data-hrk-id="goal-handoff">
+                <span class="status">Handoff</span>
+                <h3>Prepare agent-ready edits</h3>
+                <p>
+                  Export comments as a copied prompt that includes selectors and
+                  source file context for a coding agent.
+                </p>
+              </li>
+            </ul>
+          </section>
+
+          <aside aria-labelledby="review-title" data-hrk-id="review-checklist">
+            <h2 id="review-title" data-hrk-id="review-checklist-title">
+              Review checklist
+            </h2>
+            <ol class="review-list" data-hrk-id="review-checklist-list">
+              <li data-hrk-id="review-step-build">
+                Build the core package so the local AMD bundle exists.
+              </li>
+              <li data-hrk-id="review-step-open">
+                Open or serve this file in a browser.
+              </li>
+              <li data-hrk-id="review-step-comment">
+                Enable review mode, add comments, then copy the prompt.
+              </li>
+            </ol>
+          </aside>
+        </div>
+
+        <section
+          class="callout"
+          aria-labelledby="initializer-title"
+          data-hrk-id="initializer-note"
+        >
+          <h2 id="initializer-title" data-hrk-id="initializer-title">
+            Local bundle initializer
+          </h2>
+          <p data-hrk-id="initializer-copy">
+            The script below intentionally loads
+            <strong>../../packages/core/dist/html-review-kit-core.amd.js</strong
+            >, the bundle produced by
+            <code>pnpm --filter @bharathnayak03/html-review-kit-core build</code
+            >.
+          </p>
+        </section>
+      </article>
+
+      <footer data-hrk-id="artifact-footer">
+        <p>
+          HTML Review Kit keeps comments tied to stable artifact anchors so
+          static HTML can move through review without a build step.
+        </p>
+      </footer>
+    </main>
+
+    <script src="../../packages/core/dist/html-review-kit-core.amd.js"></script>
+    <script>
+      const review = HTMLReviewKitCore.createReviewLayer({
+        root: document.querySelector("[data-hrk-id='artifact-root']"),
+        artifact: {
+          artifactId: "static-html-example",
+          sourceType: "html",
+          sourceFile: "examples/static-html/index.html",
+        },
+        mode: "off",
+      });
+
+      review.enable();
+    </script>
+  </body>
+</html>
