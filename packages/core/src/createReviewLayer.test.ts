@@ -250,6 +250,67 @@ describe("createReviewLayer", () => {
     review.destroy();
   });
 
+  it("keeps stacked inline comment cards within the viewport bottom when possible", () => {
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 200,
+    });
+    const target = document.querySelector("[data-hrk-id='hero']");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      value: () =>
+        ({
+          bottom: 230,
+          height: 40,
+          left: 20,
+          right: 180,
+          top: 190,
+          width: 160,
+          x: 20,
+          y: 190,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+    const measuredHeight = 72;
+    const offsetHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+      .mockReturnValue(measuredHeight);
+
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    review.addComment({
+      body: "Keep this visible near the bottom.",
+      target: { anchorId: "hero" },
+    });
+    review.addComment({
+      body: "Keep this visible too.",
+      target: { anchorId: "hero" },
+    });
+
+    const inlineComments = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-hrk-inline-comment]"),
+    );
+    const viewportBottom = 200 - 12;
+
+    expect(inlineComments).toHaveLength(2);
+    inlineComments.forEach((inlineComment) => {
+      const top = Number.parseFloat(inlineComment.style.top);
+      const translateY =
+        /translateY\(([-\d.]+)px\)/.exec(inlineComment.style.transform)?.[1] ??
+        "0";
+      const visualBottom = top + Number.parseFloat(translateY) + measuredHeight;
+
+      expect(visualBottom).toBeLessThanOrEqual(viewportBottom);
+    });
+
+    offsetHeightSpy.mockRestore();
+    review.destroy();
+  });
+
   it("clamps comment markers to visible viewport coordinates", () => {
     document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
     Object.defineProperty(window, "innerWidth", {
@@ -295,6 +356,39 @@ describe("createReviewLayer", () => {
     expect(marker?.style.top).toBe("6px");
 
     review.destroy();
+  });
+
+  it("clears timeout render fallback on destroy", () => {
+    vi.useFakeTimers();
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
+    document.body.innerHTML = `<main><section data-hrk-id="hero"><h1>Hero</h1></section></main>`;
+    const review = createReviewLayer({
+      root: document.body,
+      artifact: { artifactId: "demo" },
+      mode: "comment",
+    });
+
+    window.dispatchEvent(new Event("resize"));
+
+    expect(setTimeoutSpy).toHaveBeenCalled();
+
+    review.destroy();
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: originalRequestAnimationFrame,
+    });
+    setTimeoutSpy.mockRestore();
+    clearTimeoutSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   it("enables review mode from the toolbar", () => {
