@@ -57,7 +57,13 @@ export function createCommentStore(options: CreateCommentStoreOptions): CommentS
 
     const runSave = () => options.storage?.save(snapshot) ?? Promise.resolve();
     const save = pendingSave ? pendingSave.then(runSave) : runSave();
-    pendingSave = save.catch(() => undefined);
+    const trackedSave = save.catch(() => undefined);
+    pendingSave = trackedSave;
+    void trackedSave.finally(() => {
+      if (pendingSave === trackedSave) {
+        pendingSave = undefined;
+      }
+    });
     return save;
   };
 
@@ -79,8 +85,14 @@ export function createCommentStore(options: CreateCommentStoreOptions): CommentS
 
     async loadComments() {
       if (!options.storage) return cloneComments(comments);
+      const pendingSaveBeforeLoad = pendingSave;
       comments = cloneComments(await options.storage.load());
       options.onCommentsChange?.(cloneComments(comments));
+      if (pendingSaveBeforeLoad) {
+        void enqueueSave(cloneComments(comments)).catch((error: unknown) => {
+          options.onStorageError?.(error);
+        });
+      }
       return cloneComments(comments);
     },
 

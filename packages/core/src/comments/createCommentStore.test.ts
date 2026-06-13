@@ -236,6 +236,54 @@ describe("createCommentStore", () => {
     expect(savedSnapshots[4]).toEqual([importedComment]);
   });
 
+  it("keeps a stale pending automatic save from overwriting loaded comments", async () => {
+    let persistedComments: ArtifactComment[] = [];
+    const releaseSave: Array<() => void> = [];
+    const remoteComment: ArtifactComment = {
+      id: "cmt_remote",
+      artifactId: "demo",
+      status: "open",
+      body: "Remote comment.",
+      target: { anchorId: "hero" },
+      createdAt: "2026-06-01T10:00:00.000Z",
+    };
+    const storage = {
+      load: vi.fn().mockResolvedValue([remoteComment]),
+      save: vi.fn(
+        (comments: ArtifactComment[]) =>
+          new Promise<void>((resolve) => {
+            releaseSave.push(() => {
+              persistedComments = structuredClone(comments);
+              resolve();
+            });
+          }),
+      ),
+    };
+    const store = createCommentStore({
+      artifact: { artifactId: "demo" },
+      storage,
+    });
+
+    store.addComment({
+      body: "Local comment.",
+      target: { anchorId: "hero" },
+    });
+    expect(storage.save).toHaveBeenCalledTimes(1);
+
+    const loaded = store.loadComments();
+    await expect(loaded).resolves.toEqual([remoteComment]);
+    releaseSave.shift()?.();
+    await waitForSaveCount(storage, 2);
+    releaseSave.shift()?.();
+    await Promise.resolve();
+
+    expect(persistedComments).toEqual([remoteComment]);
+    expect(persistedComments).not.toEqual([
+      expect.objectContaining({ body: "Local comment." }),
+    ]);
+    expect(store.getComments()).toEqual([remoteComment]);
+  });
+
   it("reports automatic save failures but rejects explicit save failures", async () => {
     const automaticError = new Error("automatic save failed");
     const explicitError = new Error("explicit save failed");
